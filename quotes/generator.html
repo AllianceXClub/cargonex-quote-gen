@@ -428,27 +428,6 @@
             width: 100%;
             border: none;
         }
-
-        /* ===== PREVIEW MODAL — Signature section disabled ===== */
-        #previewModal .sign-section,
-        #previewModal #signatureSection,
-        #previewModal .signature-block,
-        #previewModal .sig-section {
-            opacity: 0.4;
-            pointer-events: none;
-            position: relative;
-        }
-
-        .preview-sig-overlay {
-            background: rgba(231,76,60,0.12);
-            border: 1px solid rgba(231,76,60,0.3);
-            border-radius: 8px;
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            text-align: center;
-            padding: 12px;
-            margin-bottom: 16px;
-        }
     </style>
 </head>
 
@@ -468,11 +447,6 @@
             <label>אתר החברה (לשליפת לוגו אוטומטית)</label>
             <input type="text" id="clientUrl" placeholder="https://acme.com" style="direction:ltr;text-align:right;" />
             <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">אופציונלי — הלוגו יישלף אוטומטית לפי הדומיין</div>
-        </div>
-        <div class="field">
-            <label>לוגו URL (ידני)</label>
-            <input type="text" id="clientLogoUrl" placeholder="https://example.com/logo.png" style="direction:ltr;text-align:right;" />
-            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">הדבק לינק ישיר לתמונה (PNG/JPG) — אופציונלי</div>
         </div>
         <div class="field" id="logoUploadField" style="display:none;">
             <label>העלאת לוגו ידנית</label>
@@ -755,7 +729,6 @@
         function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 
         // ===== Generate =====
-        var lastGeneratedData = null; // stored for download rebuild
         async function generateQuote() {
             if (!v('clientName')) { alert('חסר: שם החברה'); return; }
             if (!v('contactName')) { alert('חסר: שם איש קשר'); return; }
@@ -790,7 +763,6 @@
             var data = {
                 clientName: esc(v('clientName')),
                 clientUrl: v('clientUrl') || '',
-                clientLogoUrl: v('clientLogoUrl') || '',
                 contactName: esc(v('contactName')),
                 contactEmail: esc(v('contactEmail')),
                 contactPhone: esc(v('contactPhone')),
@@ -813,7 +785,6 @@
                 pains: pains,
                 benefits: benefits
             };
-            lastGeneratedData = data; // save for production download
 
             var signerNameVal = v('signerName') || v('contactName');
             var signerEmailVal = v('signerEmailAddr') || v('contactEmail');
@@ -823,7 +794,7 @@
 
             var html;
             try {
-                html = await buildQuoteHTML(data, true); // isPreview=true for preview modal
+                html = await buildQuoteHTML(data);
             } catch (e) {
                 alert(e.message);
                 return;
@@ -868,7 +839,7 @@
         }
 
         // ===== Build Quote HTML (fetch template + replace placeholders) =====
-        async function buildQuoteHTML(d, isPreview) {
+        async function buildQuoteHTML(d) {
             var tpl;
             try {
                 var resp = await fetch('quote-template-v1.html');
@@ -899,15 +870,9 @@
                 document.getElementById('logoUploadField').style.display = 'block';
             }
 
-            var clientLogoHtml;
-            if (d.clientLogoUrl && !logoBase64) {
-                // Direct URL provided by admin — use it as client-logo
-                clientLogoHtml = '<img class="client-logo" src="' + d.clientLogoUrl + '" alt="' + d.clientName + '" />';
-            } else {
-                clientLogoHtml = logoBase64
-                    ? '<img class="hero-client-logo" src="' + logoBase64 + '" alt="' + d.clientName + '" />'
-                    : '';
-            }
+            var clientLogoHtml = logoBase64
+                ? '<img class="hero-client-logo" src="' + logoBase64 + '" alt="' + d.clientName + '" />'
+                : '';
 
             // Build pain items HTML (with comment buttons)
             var painIcons = ['⚡', '📦', '🔄', '⏰', '💸', '🔗', '📋'];
@@ -972,9 +937,7 @@
                 .replace(/\{\{SETUP_FEE_DISPLAY\}\}/g, d.setupFee)
                 .replace(/\{\{MONTHLY_FEE_DISPLAY\}\}/g, d.monthlyFee)
                 .replace(/\{\{CONTACT_EMAIL_PLACEHOLDER\}\}/g, d.contactEmail)
-                .replace('{{CLIENT_LOGO_HTML}}', clientLogoHtml)
-                .replace(/\{\{PREVIEW_OVERLAY_DISPLAY\}\}/g, isPreview ? 'display:block;' : 'display:none;')
-                .replace(/\{\{PREVIEW_SIG_ATTRS\}\}/g, isPreview ? 'style="opacity:0.4;pointer-events:none;"' : '');
+                .replace('{{CLIENT_LOGO_HTML}}', clientLogoHtml);
         }
 
         // ===== LEGACY (unused — kept for reference) =====
@@ -1247,4 +1210,337 @@
             var isOpen = sec.style.display !== 'none';
             sec.style.display = isOpen ? 'none' : 'block';
             btn.textContent = isOpen ? '＋ הוסף הנחה לרכיב בהצעה' : '× הסר הנחה';
-            if 
+            if (isOpen) {
+                document.getElementById('discountItem').value = '';
+                document.getElementById('discountPct').value = '';
+                document.getElementById('discountPreview').textContent = '';
+            }
+        }
+
+        function updateDiscountPreview() {
+            var item = document.getElementById('discountItem').value;
+            var pct = parseFloat(document.getElementById('discountPct').value) || 0;
+            var setup = parseFloat(document.getElementById('setupFee').value) || 0;
+            var monthly = parseFloat(document.getElementById('monthlyFee').value) || 0;
+            var preview = document.getElementById('discountPreview');
+            if (!preview) return;
+            if (!item || !pct) { preview.textContent = ''; return; }
+            var lines = [];
+            if ((item === 'setup' || item === 'both') && setup) {
+                var disc = Math.round(setup * pct / 100);
+                lines.push('הטמעה: ₪' + setup.toLocaleString('he-IL') + ' → ₪' + (setup - disc).toLocaleString('he-IL') + ' (חיסכון ₪' + disc.toLocaleString('he-IL') + ')');
+            }
+            if ((item === 'monthly' || item === 'both') && monthly) {
+                var discM = Math.round(monthly * pct / 100);
+                lines.push('חודשי: ₪' + monthly.toLocaleString('he-IL') + ' → ₪' + (monthly - discM).toLocaleString('he-IL') + '/חודש');
+            }
+            preview.innerHTML = '<span style="color:rgba(76,217,123,0.8);">✓ ' + lines.join(' | ') + '</span>';
+        }
+
+        function collectDiscount() {
+            var sec = document.getElementById('discountSection');
+            if (sec.style.display === 'none') return null;
+            var item = document.getElementById('discountItem').value;
+            var pct = parseFloat(document.getElementById('discountPct').value) || 0;
+            if (!item || !pct) return null;
+            return { item: item, pct: pct };
+        }
+
+        // ===== MULTI-RECIPIENT =====
+        const SUPABASE_SEND = 'https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/send-quote-links';
+        var viewerCount = 0;
+
+        function addViewer() {
+            viewerCount++;
+            var row = document.createElement('div');
+            row.className = 'item-row';
+            row.id = 'viewer-row-' + viewerCount;
+            row.innerHTML =
+                '<div class="item-row-header">' +
+                '<span class="item-num" style="color:rgba(255,255,255,0.5);">&#128065; צופה ' + viewerCount + '</span>' +
+                '<button type="button" class="remove-btn" onclick="document.getElementById(\'viewer-row-' + viewerCount + '\').remove()">× הסר</button>' +
+                '</div>' +
+                '<div class="grid2">' +
+                '<div class="field"><label>שם מלא</label><input type="text" class="viewer-name" placeholder="שם הצופה" /></div>' +
+                '<div class="field"><label>אימייל</label><input type="email" class="viewer-email" placeholder="viewer@company.com" style="direction:ltr;text-align:right;" /></div>' +
+                '</div>';
+            document.getElementById('viewersContainer').appendChild(row);
+        }
+
+        function collectViewers() {
+            var rows = document.querySelectorAll('#viewersContainer .item-row');
+            var viewers = [];
+            rows.forEach(function(row) {
+                var name = row.querySelector('.viewer-name').value.trim();
+                var email = row.querySelector('.viewer-email').value.trim();
+                if (email) viewers.push({ name: name, email: email });
+            });
+            return viewers;
+        }
+
+        async function sendQuoteLinks(quoteId, filename, signerName, signerEmail, viewers, baseUrl) {
+            try {
+                var res = await fetch(SUPABASE_SEND, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quote_id: quoteId,
+                        quote_filename: filename,
+                        base_url: baseUrl,
+                        signer: { name: signerName, email: signerEmail },
+                        viewers: viewers
+                    })
+                });
+                var data = await res.json();
+                if (data.ok) {
+                    console.log('[QuoteGen] Links sent. Signer:', data.signer_link);
+                } else {
+                    console.warn('[QuoteGen] send-quote-links error:', data.error);
+                }
+            } catch (e) {
+                console.warn('[QuoteGen] sendQuoteLinks failed:', e.message);
+            }
+        }
+
+        // ===== PREVIEW MODAL =====
+        var _pendingDownload = null;
+
+        function openPreview(html, filename, quoteId, signerNameVal, signerEmailVal, viewers, baseUrl) {
+            _pendingDownload = { html: html, filename: filename, quoteId: quoteId,
+                signerNameVal: signerNameVal, signerEmailVal: signerEmailVal,
+                viewers: viewers, baseUrl: baseUrl };
+            var modal = document.getElementById('previewModal');
+            var frame = document.getElementById('previewFrame');
+            var label = document.getElementById('previewQuoteLabel');
+            if (label) label.textContent = filename;
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            frame.src = URL.createObjectURL(blob);
+            modal.classList.add('open');
+        }
+
+        function closePreview() {
+            var modal = document.getElementById('previewModal');
+            modal.classList.remove('open');
+            var frame = document.getElementById('previewFrame');
+            if (frame.src && frame.src.startsWith('blob:')) URL.revokeObjectURL(frame.src);
+            frame.src = '';
+            _pendingDownload = null;
+        }
+
+        function confirmAndDownload() {
+            if (!_pendingDownload) return;
+            var pd = _pendingDownload;
+            // Download file
+            var blob = new Blob([pd.html], { type: 'text/html;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = pd.filename;
+            a.click();
+            // Send tokenized links (async — don't wait)
+            if (pd.signerEmailVal) {
+                sendQuoteLinks(pd.quoteId, pd.filename, pd.signerNameVal, pd.signerEmailVal, pd.viewers, pd.baseUrl);
+            }
+            // Show share panel instead of closing
+            showSharePanel(pd);
+        }
+
+        function showSharePanel(pd) {
+            var quoteUrl = (pd.baseUrl || 'https://quotes.cargonex.io') + '/' + pd.filename;
+            var contactName = document.getElementById('contactName').value.trim() || pd.signerNameVal || '';
+            var expiryDisplay = formatDate(document.getElementById('expiryDate').value);
+            var senderName = document.getElementById('senderName').value.trim() || 'דרור';
+            var senderPhone = document.getElementById('senderPhone').value.trim() || '';
+
+            // Build both message variants
+            var waMsg = [
+                'שלום ' + contactName + ' 👋',
+                '',
+                'הצעת המחיר שלנו מוכנה עבורך 🚀',
+                '',
+                'בנינו עבורך פתרון שיחסוך זמן, יוריד עלויות, ויסדר את נושא ניהול המשלוחים.',
+                '',
+                '⚡ קריאה + חתימה ישירות מהנייד — 3 דקות בלבד:',
+                '👇 ' + quoteUrl,
+                '',
+                'ההצעה בתוקף עד ' + expiryDisplay + '.',
+                'לכל שאלה — ' + senderName + (senderPhone ? ' ' + senderPhone : '')
+            ].join('\n');
+
+            var tgMsg = [
+                'שלום ' + contactName + ' 👋',
+                '',
+                'הצעת המחיר שלנו מוכנה עבורך.',
+                '',
+                'פתרון מותאם אישית לניהול משלוחים — עם חתימה ישירה מהנייד.',
+                '',
+                '📋 ' + quoteUrl,
+                '',
+                'בתוקף עד ' + expiryDisplay + ' | ' + senderName
+            ].join('\n');
+
+            // Store on element for tab switching
+            var msgEl = document.getElementById('shareMsgText');
+            msgEl.setAttribute('data-wa', waMsg);
+            msgEl.setAttribute('data-tg', tgMsg);
+            msgEl.textContent = waMsg;
+
+            // Populate URL display
+            document.getElementById('shareQuoteUrl').textContent = quoteUrl;
+            document.getElementById('shareQuoteUrl').setAttribute('data-url', quoteUrl);
+
+            // Update panel title
+            if (contactName) {
+                document.getElementById('sharePanelTitle').textContent = 'שתף עם ' + contactName;
+            }
+
+            // Reset tabs
+            document.getElementById('tabWA').classList.add('active');
+            document.getElementById('tabTG').classList.remove('active');
+
+            // Switch view: hide iframe + confirm btn, show share panel
+            document.getElementById('previewFrame').style.display = 'none';
+            document.getElementById('previewConfirmBtn').style.display = 'none';
+            document.getElementById('sharePanel').classList.add('open');
+
+            // Update topbar label to show success
+            var label = document.getElementById('previewQuoteLabel');
+            if (label) label.innerHTML = '<span style="color:#4cd97b;">&#10003; ' + pd.filename + '</span>';
+        }
+
+        function copyQuoteUrl() {
+            var url = document.getElementById('shareQuoteUrl').getAttribute('data-url') ||
+                      document.getElementById('shareQuoteUrl').textContent;
+            var btn = document.getElementById('shareCopyBtn');
+            navigator.clipboard.writeText(url).then(function() {
+                btn.textContent = '✓ הועתק';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = 'העתק';
+                    btn.classList.remove('copied');
+                }, 2000);
+            }).catch(function() {
+                // Fallback for older browsers
+                var ta = document.createElement('textarea');
+                ta.value = url;
+                ta.style.position = 'fixed';
+                ta.style.opacity = '0';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                btn.textContent = '✓ הועתק';
+                btn.classList.add('copied');
+                setTimeout(function() {
+                    btn.textContent = 'העתק';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
+        function openWhatsApp() {
+            var waMsg = document.getElementById('shareMsgText').getAttribute('data-wa') || '';
+            var senderWA = document.getElementById('senderWhatsapp').value.trim() || '972506503272';
+            var encoded = encodeURIComponent(waMsg);
+            trackShareEvent('whatsapp');
+            window.open('https://wa.me/' + senderWA + '?text=' + encoded, '_blank');
+        }
+
+        function openTelegram() {
+            var tgMsg = document.getElementById('shareMsgText').getAttribute('data-tg') || '';
+            var encoded = encodeURIComponent(tgMsg);
+            trackShareEvent('telegram');
+            window.open('https://t.me/share/url?url=' + encodeURIComponent(document.getElementById('shareQuoteUrl').getAttribute('data-url') || '') + '&text=' + encoded, '_blank');
+        }
+
+        function switchMsgTab(tab) {
+            var msgEl = document.getElementById('shareMsgText');
+            var tabWA = document.getElementById('tabWA');
+            var tabTG = document.getElementById('tabTG');
+            if (tab === 'wa') {
+                msgEl.textContent = msgEl.getAttribute('data-wa') || '';
+                tabWA.classList.add('active');
+                tabTG.classList.remove('active');
+            } else {
+                msgEl.textContent = msgEl.getAttribute('data-tg') || '';
+                tabTG.classList.add('active');
+                tabWA.classList.remove('active');
+            }
+        }
+
+        function closeShareModal() {
+            document.getElementById('sharePanel').classList.remove('open');
+            var frame = document.getElementById('previewFrame');
+            if (frame.src && frame.src.startsWith('blob:')) URL.revokeObjectURL(frame.src);
+            frame.src = '';
+            frame.style.display = '';
+            document.getElementById('previewConfirmBtn').style.display = '';
+            document.getElementById('previewModal').classList.remove('open');
+            _pendingDownload = null;
+        }
+
+        function trackShareEvent(channel) {
+            if (!_pendingDownload) return;
+            try {
+                fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/track-event', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        event: 'quote_shared',
+                        quote_id: _pendingDownload.quoteId,
+                        timestamp: new Date().toISOString(),
+                        metadata: { channel: channel }
+                    })
+                }).catch(function() {});
+            } catch(e) {}
+        }
+
+    </script>
+
+    <!-- Preview Modal -->
+    <div id="previewModal">
+        <div id="previewTopBar">
+            <div class="preview-label">תצוגה מקדימה — <strong id="previewQuoteLabel"></strong></div>
+            <div style="display:flex;gap:10px;">
+                <button class="preview-action-btn back" onclick="closePreview()">&#8592; חזור לעריכה</button>
+                <button class="preview-action-btn confirm" id="previewConfirmBtn" onclick="confirmAndDownload()">&#10003; אשר והורד קובץ</button>
+            </div>
+        </div>
+        <iframe id="previewFrame" title="תצוגה מקדימה של ההצעה"></iframe>
+
+        <!-- Share Panel — shown after download -->
+        <div id="sharePanel">
+            <div class="share-success-badge">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#4cd97b" stroke-width="1.5"/><path d="M5 8l2 2 4-4" stroke="#4cd97b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                ההצעה הורדה בהצלחה
+            </div>
+            <div class="share-title" id="sharePanelTitle">שתף עם הלקוח</div>
+            <div class="share-subtitle">הקובץ מוכן — שלח דרך הערוץ המועדף עליך</div>
+            <div class="share-url-row">
+                <span class="share-url-text" id="shareQuoteUrl"></span>
+                <button class="share-copy-btn" id="shareCopyBtn" onclick="copyQuoteUrl()">העתק</button>
+            </div>
+            <div class="share-channels">
+                <button class="share-channel-btn whatsapp" onclick="openWhatsApp()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    WhatsApp
+                </button>
+                <button class="share-channel-btn telegram" onclick="openTelegram()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+                    Telegram
+                </button>
+            </div>
+            <div class="share-msg-preview">
+                <div class="share-msg-tabs">
+                    <button class="share-msg-tab active" id="tabWA" onclick="switchMsgTab('wa')">WhatsApp</button>
+                    <button class="share-msg-tab" id="tabTG" onclick="switchMsgTab('tg')">Telegram</button>
+                </div>
+                <div class="share-msg-label">תצוגה מקדימה של ההודעה:</div>
+                <div class="share-msg-text" id="shareMsgText"></div>
+            </div>
+            <div class="share-git-note">📎 זכור להעלות את הקובץ ל-Cloudflare Pages לפני השיתוף (git push)</div>
+            <button class="share-done-btn" onclick="closeShareModal()">סגור ✕</button>
+        </div>
+    </div>
+
+</body>
+</html>

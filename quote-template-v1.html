@@ -41,13 +41,13 @@
             color: #E74C3C;
             letter-spacing: 0.05em;
             margin-bottom: 12px;
-            text-align: right;
+            text-align: center;
         }
 
         .section-title {
             font-size: 32px;
             font-weight: 700;
-            text-align: right;
+            text-align: center;
             margin-bottom: 48px;
             line-height: 1.2;
         }
@@ -98,7 +98,7 @@
         }
 
         .hero-company {
-            font-size: 40px;
+            font-size: 52px;
             font-weight: 800;
             margin-bottom: 8px;
             line-height: 1.2;
@@ -120,15 +120,6 @@
             border-radius: 6px;
             background: rgba(255,255,255,0.06);
             padding: 8px 16px;
-        }
-
-        .client-logo {
-            max-height: 60px;
-            max-width: 180px;
-            object-fit: contain;
-            margin: 0 auto 16px;
-            display: block;
-            opacity: 0.9;
         }
 
         .hero-dates {
@@ -237,7 +228,7 @@
 
         .benefit-card {
             padding: 28px 20px;
-            text-align: right;
+            text-align: center;
             border-radius: 16px;
         }
 
@@ -1207,27 +1198,6 @@
             padding-top: 12px;
             border-top: 1px solid rgba(255,255,255,0.06);
         }
-
-        /* ===== PREVIEW MODE — Signature Disabled ===== */
-        #previewModal .sign-section,
-        #previewModal #signatureSection,
-        #previewModal .signature-block,
-        #previewModal .sig-section {
-            opacity: 0.4;
-            pointer-events: none;
-            position: relative;
-        }
-
-        .preview-sig-overlay {
-            background: rgba(231,76,60,0.12);
-            border: 1px solid rgba(231,76,60,0.3);
-            border-radius: 8px;
-            color: rgba(255,255,255,0.6);
-            font-size: 14px;
-            text-align: center;
-            padding: 12px;
-            margin-bottom: 16px;
-        }
     </style>
 </head>
 
@@ -1470,8 +1440,7 @@
     </div>
 
     <!-- Section 6: Signature -->
-    <section class="sig-section" id="sec-signature" {{PREVIEW_SIG_ATTRS}}>
-        <div class="preview-sig-overlay" id="previewSigOverlay" style="{{PREVIEW_OVERLAY_DISPLAY}}">👁️ תצוגה מקדימה — חתימה אינה אפשרית</div>
+    <section class="sig-section" id="sec-signature">
         <div class="sig-eyebrow">אישור וחתימה</div>
         <h2 class="sig-title">חתימה אלקטרונית</h2>
         <p class="sig-subtitle">חתימתך מהווה אישור מלא לתנאי ההצעה לעיל</p>
@@ -1845,4 +1814,28 @@
             if (!hasSig) { showErr('errSig'); valid = false; }
             if (!agree) { showErr('errAgree'); valid = false; }
             if (!valid) return;
-            const btn = document.getEle
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true; btn.textContent = '⏳ שולח...';
+            const sigBase64 = canvas.toDataURL('image/png');
+            sendEvent('quote_signed');
+            try {
+                const res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/sign-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signature_b64: sigBase64, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
+                });
+                if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'שגיאת שרת ' + res.status); }
+                const ts = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });
+                document.getElementById('confirmTimestamp').textContent = 'נחתם ב־' + ts;
+                document.getElementById('confirmScreen').style.display = 'flex';
+                setTimeout(launchConfetti, 300);
+            } catch (err) {
+                btn.disabled = false; btn.textContent = 'חותם על ההצעה ומאשר ✓';
+                alert('שגיאה בשליחה: ' + err.message + '\nנסה שוב.');
+            }
+        }
+    </script>
+
+</body>
+
+</html>

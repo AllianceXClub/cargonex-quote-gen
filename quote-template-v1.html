@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#0A0A0A" />
+    <meta name="theme-color" content="#080808" />
     <title>הצעת מחיר — CargoNex — {{CLIENT_COMPANY}}</title>
     <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet" />
     <style>
@@ -21,7 +21,7 @@
         }
 
         body {
-            background: #0A0A0A;
+            background: #080808;
             color: #FFFFFF;
             font-family: 'Heebo', sans-serif;
             direction: rtl;
@@ -222,7 +222,7 @@
         /* Benefits */
         .benefits-grid {
             display: grid;
-            grid-template-columns: repeat({{BEN_COLS}}, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 16px;
         }
 

@@ -22,7 +22,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { quote_id, signer_name, signer_email, signature_b64, client_name, session_id, setup_fee, monthly_fee, owner_email, token } = body;
+    const { quote_id, signer_name, signer_email, signer_phone, signature_b64, client_name, session_id, setup_fee, monthly_fee, owner_email, token } = body;
 
     // Basic validation
     if (!quote_id || !signer_name || !signer_email || !signature_b64) {
@@ -65,6 +65,7 @@ serve(async (req) => {
       quote_id,
       signer_name,
       signer_email,
+      signer_phone: signer_phone || null,
       signature_image: signature_b64,
       client_name: client_name || "",
       setup_fee: setup_fee || null,

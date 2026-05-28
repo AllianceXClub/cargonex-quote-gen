@@ -273,7 +273,13 @@
         <div class="field">
             <label>אתר החברה (לשליפת לוגו אוטומטית)</label>
             <input type="text" id="clientUrl" placeholder="https://acme.com" style="direction:ltr;text-align:right;" />
-            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">אופציונלי — הלוגו יופיע בהצעה ליד שם החברה</div>
+            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">אופציונלי — הלוגו יישלף אוטומטית לפי הדומיין</div>
+        </div>
+        <div class="field" id="logoUploadField" style="display:none;">
+            <label>העלאת לוגו ידנית</label>
+            <input type="file" id="logoFileInput" accept="image/*"
+                style="background:rgba(255,255,255,0.03);border:1px solid rgba(231,76,60,0.4);border-radius:8px;padding:10px 16px;color:#fff;font-size:14px;font-family:Heebo,sans-serif;width:100%;cursor:pointer;" />
+            <div style="font-size:12px;color:rgba(231,76,60,0.7);margin-top:4px;">הלוגו לא נמצא אוטומטית — ניתן להעלות ידנית (PNG/SVG/JPG)</div>
         </div>
         <div class="grid2">
             <div class="field">
@@ -670,8 +676,27 @@
                 throw new Error('לא ניתן לטעון את תבנית ההצעה (quote-template-v1.html).\n\nפתרון: הרץ את הגנרטור מ-local server:\nnpx serve .\nואז פתח: http://localhost:3000/generator.html\n\n(' + e.message + ')');
             }
 
-            // Fetch client logo (Clearbit → base64, silent fail)
+            // Fetch client logo: Clearbit → fallback to manual file upload
             var logoBase64 = await fetchClientLogo(d.clientUrl);
+
+            // If Clearbit failed → try manual file upload
+            if (!logoBase64) {
+                var fileInput = document.getElementById('logoFileInput');
+                if (fileInput && fileInput.files && fileInput.files[0]) {
+                    logoBase64 = await new Promise(function(resolve) {
+                        var reader = new FileReader();
+                        reader.onload = function(e) { resolve(e.target.result); };
+                        reader.onerror = function() { resolve(''); };
+                        reader.readAsDataURL(fileInput.files[0]);
+                    });
+                }
+            }
+
+            // Show/hide manual upload field based on Clearbit result
+            if (!logoBase64 && d.clientUrl) {
+                document.getElementById('logoUploadField').style.display = 'block';
+            }
+
             var clientLogoHtml = logoBase64
                 ? '<img class="hero-client-logo" src="' + logoBase64 + '" alt="' + d.clientName + '" />'
                 : '';

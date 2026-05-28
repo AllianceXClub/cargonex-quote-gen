@@ -98,10 +98,11 @@
         }
 
         .hero-company {
-            font-size: 36px;
-            font-weight: 700;
+            font-size: 52px;
+            font-weight: 800;
             margin-bottom: 8px;
             line-height: 1.2;
+            letter-spacing: -0.03em;
         }
 
         .hero-contact {
@@ -350,9 +351,11 @@
         }
 
         .pricing-total-amount {
-            font-size: 26px;
-            font-weight: 700;
+            font-size: 44px;
+            font-weight: 800;
             color: #E74C3C;
+            letter-spacing: -0.02em;
+            font-variant-numeric: tabular-nums;
         }
 
         .pricing-total-vat {
@@ -789,23 +792,8 @@
 
         body > * { position: relative; z-index: 1; }
 
-        /* ===== HERO UPGRADE ===== */
-        .hero-company {
-            font-size: 52px !important;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-        }
-
         .hero-logo {
             text-shadow: 0 0 40px rgba(231,76,60,0.4);
-        }
-
-        /* ===== PRICING UPGRADE ===== */
-        .pricing-total-amount {
-            font-size: 44px !important;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            font-variant-numeric: tabular-nums;
         }
 
         .pricing-amount {
@@ -1454,6 +1442,11 @@
                 <div class="field-error" id="errEmail">נא להזין אימייל תקין</div>
             </div>
             <div class="field-group">
+                <label class="field-label" for="signerPhone">טלפון (לאימות זהות)</label>
+                <input class="field-input ltr" type="tel" id="signerPhone" placeholder="050-000-0000"
+                    autocomplete="tel" inputmode="tel" />
+            </div>
+            <div class="field-group">
                 <label class="field-label">חתימה *</label>
                 <canvas id="sigCanvas" width="640" height="220"></canvas>
                 <div class="field-error" id="errSig">נא לחתום בשטח החתימה</div>
@@ -1790,6 +1783,7 @@
         async function submitSignature() {
             const name = document.getElementById('signerName').value.trim();
             const email = document.getElementById('signerEmail').value.trim();
+            const phone = document.getElementById('signerPhone').value.trim();
             const agree = document.getElementById('agreeCheck').checked;
             let valid = true;
             if (!name) { showErr('errName'); valid = false; }
@@ -1805,7 +1799,7 @@
                 const res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/sign-quote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signature_b64: sigBase64, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
+                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signature_b64: sigBase64, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
                 });
                 if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'שגיאת שרת ' + res.status); }
                 const ts = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });

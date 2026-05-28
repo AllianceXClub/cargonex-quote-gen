@@ -1,0 +1,1160 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CargoNex — יצירת הצעת מחיר</title>
+    <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet" />
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: #0A0A0A;
+            color: #FFFFFF;
+            font-family: 'Heebo', sans-serif;
+            direction: rtl;
+            padding: 48px 24px;
+        }
+
+        h1 {
+            font-size: 28px;
+            font-weight: 700;
+            color: #E74C3C;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-bottom: 48px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: #E74C3C;
+            letter-spacing: 0.05em;
+            margin-bottom: 24px;
+        }
+
+        .field {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.5);
+            margin-bottom: 8px;
+        }
+
+        input,
+        textarea,
+        select {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #FFFFFF;
+            font-size: 15px;
+            font-family: 'Heebo', sans-serif;
+            outline: none;
+            direction: rtl;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            border-color: #E74C3C;
+            box-shadow: 0 0 0 2px rgba(231, 76, 60, 0.2);
+        }
+
+        textarea {
+            height: 80px;
+            resize: vertical;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='rgba(255,255,255,0.4)' d='M6 8L0 0h12z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: left 14px center;
+        }
+
+        select option {
+            background: #1a1a1a;
+        }
+
+        .grid2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Dynamic item rows */
+        .item-row {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 12px;
+        }
+
+        .item-row-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 14px;
+        }
+
+        .item-num {
+            font-size: 12px;
+            font-weight: 600;
+            color: #E74C3C;
+            letter-spacing: 0.04em;
+        }
+
+        .remove-btn {
+            background: none;
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 6px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 4px 10px;
+            font-family: 'Heebo', sans-serif;
+            transition: all 0.2s;
+        }
+
+        .remove-btn:hover {
+            border-color: #E74C3C;
+            color: #E74C3C;
+        }
+
+        .item-select {
+            margin-bottom: 12px;
+        }
+
+        .item-title {
+            display: none;
+            margin-bottom: 12px;
+        }
+
+        .item-desc {
+            height: 72px;
+        }
+
+        .add-item-btn {
+            width: 100%;
+            background: transparent;
+            border: 1px dashed rgba(231, 76, 60, 0.4);
+            border-radius: 10px;
+            padding: 14px;
+            color: rgba(231, 76, 60, 0.8);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: 'Heebo', sans-serif;
+            cursor: pointer;
+            margin-top: 4px;
+            transition: all 0.2s;
+        }
+
+        .add-item-btn:hover {
+            background: rgba(231, 76, 60, 0.05);
+            border-color: #E74C3C;
+            color: #E74C3C;
+        }
+
+        .generate-btn {
+            width: 100%;
+            background: #E74C3C;
+            color: #FFFFFF;
+            border: none;
+            border-radius: 10px;
+            padding: 18px;
+            font-size: 17px;
+            font-weight: 700;
+            font-family: 'Heebo', sans-serif;
+            cursor: pointer;
+            box-shadow: 0 0 24px rgba(231, 76, 60, 0.35);
+            margin-top: 8px;
+        }
+
+        .generate-btn:hover {
+            box-shadow: 0 0 32px rgba(231, 76, 60, 0.55);
+        }
+
+        /* ===== Preview Modal ===== */
+        #previewModal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.92);
+            z-index: 9999;
+            flex-direction: column;
+        }
+        #previewModal.open { display: flex; }
+        #previewTopBar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 20px;
+            background: #111;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        #previewTopBar .preview-label {
+            font-size: 14px;
+            color: rgba(255,255,255,0.5);
+            font-family: 'Heebo', sans-serif;
+        }
+        #previewTopBar .preview-label strong {
+            color: #fff;
+        }
+        .preview-action-btn {
+            padding: 10px 22px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            font-family: 'Heebo', sans-serif;
+            cursor: pointer;
+            border: none;
+            transition: all 0.2s;
+        }
+        .preview-action-btn.confirm {
+            background: #E74C3C;
+            color: #fff;
+            box-shadow: 0 0 16px rgba(231,76,60,0.4);
+        }
+        .preview-action-btn.confirm:hover { box-shadow: 0 0 24px rgba(231,76,60,0.6); }
+        .preview-action-btn.back {
+            background: rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.8);
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .preview-action-btn.back:hover { background: rgba(255,255,255,0.12); }
+        #previewFrame {
+            flex: 1;
+            width: 100%;
+            border: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>CargoNex</h1>
+    <div class="subtitle">מחולל הצעות מחיר — מלא את הפרטים וקבל קובץ HTML מוכן לשליחה</div>
+
+    <!-- פרטי לקוח -->
+    <div class="card">
+        <div class="section-title">פרטי לקוח</div>
+        <div class="field">
+            <label>שם החברה *</label>
+            <input type="text" id="clientName" placeholder="לדוגמה: לוגיסטיקה בע״מ" />
+        </div>
+        <div class="field">
+            <label>אתר החברה (לשליפת לוגו אוטומטית)</label>
+            <input type="text" id="clientUrl" placeholder="https://acme.com" style="direction:ltr;text-align:right;" />
+            <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">אופציונלי — הלוגו יופיע בהצעה ליד שם החברה</div>
+        </div>
+        <div class="grid2">
+            <div class="field">
+                <label>שם איש קשר *</label>
+                <input type="text" id="contactName" placeholder="שם פרטי ומשפחה" />
+            </div>
+            <div class="field">
+                <label>תפקיד</label>
+                <input type="text" id="contactRole" placeholder="לדוגמה: מנכ״ל" />
+            </div>
+        </div>
+        <div class="grid2">
+            <div class="field">
+                <label>אימייל *</label>
+                <input type="email" id="contactEmail" placeholder="client@company.com"
+                    style="direction:ltr; text-align:right;" />
+            </div>
+            <div class="field">
+                <label>טלפון</label>
+                <input type="tel" id="contactPhone" placeholder="050-0000000"
+                    style="direction:ltr; text-align:right;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- פרטי עסקה -->
+    <div class="card">
+        <div class="section-title">פרטי עסקה</div>
+        <div class="grid2">
+            <div class="field">
+                <label>מספר הצעה *</label>
+                <input type="text" id="quoteId" placeholder="CN-QUO-2026-001" />
+            </div>
+            <div class="field">
+                <label>תוקף ההצעה *</label>
+                <input type="date" id="expiryDate" />
+            </div>
+        </div>
+        <div class="grid2">
+            <div class="field">
+                <label>מחיר הטמעה (₪) *</label>
+                <input type="number" id="setupFee" placeholder="15000" oninput="updateDiscountPreview()" />
+            </div>
+            <div class="field">
+                <label>מחיר חודשי (₪) *</label>
+                <input type="number" id="monthlyFee" placeholder="4500" oninput="updateDiscountPreview()" />
+            </div>
+        </div>
+
+        <!-- הנחה -->
+        <div style="margin-top:8px;">
+            <button type="button" id="discountToggleBtn" class="add-item-btn" style="margin-top:0;"
+                onclick="toggleDiscountSection()">＋ הוסף הנחה לרכיב בהצעה</button>
+            <div id="discountSection" style="display:none; margin-top:16px; padding:20px; background:rgba(76,217,123,0.04); border:1px solid rgba(76,217,123,0.2); border-radius:10px;">
+                <div style="font-size:13px; font-weight:600; color:rgba(76,217,123,0.8); margin-bottom:16px;">הגדרת הנחה</div>
+                <div class="grid2">
+                    <div class="field">
+                        <label>רכיב להנחה</label>
+                        <select id="discountItem" onchange="updateDiscountPreview()">
+                            <option value="">— בחר רכיב —</option>
+                            <option value="setup">הטמעה מקוסטמת</option>
+                            <option value="monthly">תשתית + רישוי SaaS (חודשי)</option>
+                            <option value="both">שניהם</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label>אחוז הנחה (%)</label>
+                        <input type="number" id="discountPct" min="1" max="100" placeholder="לדוגמה: 15"
+                            oninput="updateDiscountPreview()" />
+                    </div>
+                </div>
+                <div id="discountPreview" style="margin-top:12px; font-size:13px; color:rgba(240,240,240,0.5); min-height:20px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- פרטי שולח -->
+    <div class="card">
+        <div class="section-title">פרטי שולח — מופיע בהצעה</div>
+        <div class="grid2">
+            <div class="field">
+                <label>שם שולח</label>
+                <input type="text" id="senderName" value="דרור" />
+            </div>
+            <div class="field">
+                <label>מספר WhatsApp (ללא + ורווחים)</label>
+                <input type="tel" id="senderWhatsapp" value="972506503272" style="direction:ltr; text-align:right;" />
+            </div>
+        </div>
+        <div class="grid2">
+            <div class="field">
+                <label>אימייל שולח</label>
+                <input type="email" id="senderEmail" value="dror@cargonex.io"
+                    style="direction:ltr; text-align:right;" />
+            </div>
+            <div class="field">
+                <label>טלפון שולח</label>
+                <input type="tel" id="senderPhone" value="050-650-3272" style="direction:ltr; text-align:right;" />
+            </div>
+        </div>
+    </div>
+
+    <!-- כאבים -->
+    <div class="card">
+        <div class="section-title">מה זיהינו אצלכם — אתגרים</div>
+        <div id="painContainer"></div>
+        <button type="button" class="add-item-btn" onclick="addPain()">＋ הוסף אתגר נוסף</button>
+    </div>
+
+    <!-- יתרונות -->
+    <div class="card">
+        <div class="section-title">מה אנחנו בונים לכם — יתרונות</div>
+        <div id="benContainer"></div>
+        <button type="button" class="add-item-btn" onclick="addBen()">＋ הוסף יתרון נוסף</button>
+    </div>
+
+    <!-- נמענים -->
+    <div class="card">
+        <div class="section-title">נמענים — מורשי חתימה וצפייה</div>
+        <div style="margin-bottom:16px;">
+            <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:6px;">חותם מורשה (ראשי) *</div>
+            <div class="grid2">
+                <div class="field">
+                    <label>שם מלא</label>
+                    <input type="text" id="signerName" placeholder="שם החותם" />
+                </div>
+                <div class="field">
+                    <label>אימייל</label>
+                    <input type="email" id="signerEmailAddr" placeholder="signer@company.com" style="direction:ltr;text-align:right;" />
+                </div>
+            </div>
+        </div>
+        <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:10px;">צופים נוספים (קריאה בלבד)</div>
+        <div id="viewersContainer"></div>
+        <button type="button" class="add-item-btn" onclick="addViewer()">＋ הוסף נמען צפייה</button>
+        <div style="margin-top:20px;padding:14px 16px;background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.15);border-radius:8px;">
+            <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:8px;">כתובת בסיס להצעה (URL prefix) *</div>
+            <input type="text" id="quoteBaseUrl" placeholder="https://quotes.cargonex.io" style="direction:ltr;" value="https://quotes.cargonex.io" />
+            <div style="font-size:11px;color:rgba(255,255,255,0.3);margin-top:6px;">הלינק הסופי: [URL]/quote-[מספר].html?t=[token]&role=signer&name=...</div>
+        </div>
+    </div>
+
+    <!-- כפתור -->
+    <button class="generate-btn" onclick="generateQuote()">👁 תצוגה מקדימה לפני שליחה</button>
+
+    <script>
+        // ===== Presets =====
+        var PAIN_PRESETS = [
+            { title: 'תהליכי שחרור סחורה ידניים', desc: 'שחרור מכס ותיאום עם ספקים נעשים ידנית — גורם לעיכובים, שגיאות ועלויות גבוהות.' },
+            { title: 'חוסר נראות בזמן אמת על משלוחים', desc: 'אין מעקב על מיקום ומצב המשלוחים — הצוות עיוור בין שליחה לאספקה.' },
+            { title: 'תיאום ידני מול ספקים ומשלחים', desc: 'כל תיאום דרך מיילים וטלפונים — מידע נאבד בין הגורמים ועיכובים חוזרים.' },
+            { title: 'שגיאות בתיעוד ומסמכי יבוא/יצוא', desc: 'מסמכים שגויים גוררים עיכובים בנמל, קנסות ועמלות מיותרות.' },
+            { title: 'הזנת נתונים כפולה במערכות שונות', desc: 'אותם נתונים מוזנים מספר פעמים למערכות שאינן מקושרות — שגיאות ובזבוז זמן.' },
+            { title: 'חוסר אינטגרציה בין מערכות', desc: 'ERP, מכס ולוגיסטיקה פועלים בנפרד — גורמים לפערי מידע ותקלות תפעוליות.' },
+            { title: 'עלויות גבוהות ללא שליטה', desc: 'אין כלים לניתוח עלויות בזמן אמת — ויתור על חיסכונות אפשריים בנתיבים ובספקים.' }
+        ];
+        var BEN_PRESETS = [
+            { title: 'אוטומציה של תהליכי שחרור סחורה', desc: 'מסמכים, תיאום מכס ואישורים — אוטומטיים לחלוטין. חיסכון של שעות עבודה בכל משלוח.' },
+            { title: 'נראות מלאה בזמן אמת', desc: 'דאשבורד מרכזי שמציג את מצב כל המשלוחים — עבורך ועבור לקוחותיך.' },
+            { title: 'אינטגרציה עם המערכות הקיימות', desc: 'חיבור ישיר ל-ERP, מכס וחשבונאות — ללא כפל נתונים וללא שגיאות העברה.' },
+            { title: 'הפחתת שגיאות בתיעוד', desc: 'בקרה אוטומטית על מסמכים לפני שליחה — מניעת קנסות ועיכובים בנמל.' },
+            { title: 'חיסכון מדיד בעלויות תפעול', desc: 'אופטימיזציה של נתיבים וספקים — תוצאות נמדדות כבר מהחודש הראשון.' },
+            { title: 'דאשבורד ניהולי אחוד', desc: 'כל הנתונים — משלוחים, עלויות, ביצועים — בממשק אחד נגיש תמיד.' },
+            { title: 'תיאום אוטומטי עם ספקים', desc: 'התראות, אישורים ועדכונים נשלחים אוטומטית לכל הגורמים הרלוונטיים.' }
+        ];
+        var PAIN_ICONS = ['⚡', '📦', '🔄', '⏰', '💸', '🔗', '📋'];
+        var BEN_ICONS = ['🚀', '📊', '🔒', '⚙️', '💡', '🔗', '📈'];
+
+        var painCount = 0, benCount = 0;
+
+        function buildOptions(type) {
+            var presets = type === 'pain' ? PAIN_PRESETS : BEN_PRESETS;
+            var html = '<option value="">— בחר מהרשימה —</option>';
+            for (var i = 0; i < presets.length; i++) {
+                html += '<option value="' + i + '">' + presets[i].title + '</option>';
+            }
+            html += '<option value="manual">✏️ הוסף ידנית...</option>';
+            return html;
+        }
+
+        function onPresetChange(sel) {
+            var row = sel.closest('.item-row');
+            var type = row.getAttribute('data-type');
+            var presets = type === 'pain' ? PAIN_PRESETS : BEN_PRESETS;
+            var titleEl = row.querySelector('.item-title');
+            var descEl = row.querySelector('.item-desc');
+            var val = sel.value;
+            if (val === 'manual') {
+                titleEl.style.display = 'block';
+                titleEl.value = '';
+                descEl.value = '';
+                titleEl.focus();
+            } else if (val !== '') {
+                var p = presets[parseInt(val)];
+                titleEl.style.display = 'none';
+                titleEl.value = p.title;
+                descEl.value = p.desc;
+            } else {
+                titleEl.style.display = 'none';
+                titleEl.value = '';
+                descEl.value = '';
+            }
+        }
+
+        function renumber(containerId, label) {
+            var els = document.querySelectorAll('#' + containerId + ' .item-num');
+            for (var i = 0; i < els.length; i++) {
+                els[i].textContent = label + ' ' + (i + 1);
+            }
+        }
+
+        function createRow(containerId, type) {
+            var label = type === 'pain' ? 'אתגר' : 'יתרון';
+            if (type === 'pain') { painCount++; } else { benCount++; }
+            var idx = type === 'pain' ? painCount : benCount;
+            var row = document.createElement('div');
+            row.className = 'item-row';
+            row.setAttribute('data-type', type);
+            row.innerHTML =
+                '<div class="item-row-header">' +
+                '<span class="item-num">' + label + ' ' + idx + '</span>' +
+                '<button type="button" class="remove-btn" onclick="this.closest(\'.item-row\').remove();renumber(\'' + containerId + '\',\'' + label + '\')">× הסר</button>' +
+                '</div>' +
+                '<select class="item-select" onchange="onPresetChange(this)">' + buildOptions(type) + '</select>' +
+                '<input type="text" class="item-title" placeholder="כותרת" />' +
+                '<textarea class="item-desc" placeholder="תיאור קצר..."></textarea>';
+            document.getElementById(containerId).appendChild(row);
+        }
+
+        function addPain() { createRow('painContainer', 'pain'); }
+        function addBen() { createRow('benContainer', 'ben'); }
+
+        function collectItems(containerId) {
+            var items = [];
+            var rows = document.querySelectorAll('#' + containerId + ' .item-row');
+            for (var i = 0; i < rows.length; i++) {
+                var title = rows[i].querySelector('.item-title').value.trim();
+                var desc = rows[i].querySelector('.item-desc').value.trim();
+                if (title) items.push({ title: title, desc: desc });
+            }
+            return items;
+        }
+
+        // ===== Helpers =====
+        function v(id) { return document.getElementById(id).value.trim(); }
+        function n(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+        function buildAnalyticsJS(quoteId) {
+            return '  // ===== ANALYTICS & WEBHOOK HARDENING =====\n' +
+                '  var QUOTE_ID=\'' + quoteId + '\';\n' +
+                '  var SUPABASE_TRACK=\'https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/track-event\';\n' +
+                '  var SESSION_ID=(crypto&&crypto.randomUUID)?crypto.randomUUID():Date.now().toString(36);\n' +
+                '  var pageStart=Date.now();\n' +
+                '  function sendEvent(type,meta){\n' +
+                '    var p={event:type,quote_id:QUOTE_ID,timestamp:new Date().toISOString(),session_id:SESSION_ID,user_agent:navigator.userAgent,metadata:meta||{}};\n' +
+                '    var key=\'cn_evt_\'+Date.now()+\'_\'+Math.random().toString(36).slice(2);\n' +
+                '    try{localStorage.setItem(key,JSON.stringify(p));}catch(e){}\n' +
+                '    function attempt(n){fetch(SUPABASE_TRACK,{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify(p)}).then(function(r){if(r.ok){try{localStorage.removeItem(key);}catch(e){}}else if(n<2)setTimeout(function(){attempt(n+1);},[1000,4000][n]);}).catch(function(){if(n<2)setTimeout(function(){attempt(n+1);},[1000,4000][n]);});}\n' +
+                '    attempt(0);\n' +
+                '  }\n' +
+                '  (function(){try{for(var i=localStorage.length-1;i>=0;i--){var k=localStorage.key(i);if(k&&k.startsWith(\'cn_evt_\')){var ep=JSON.parse(localStorage.getItem(k));ep.replayed=true;fetch(SUPABASE_TRACK,{method:\'POST\',headers:{\'Content-Type\':\'application/json\'},body:JSON.stringify(ep)}).then(function(r){if(r.ok)localStorage.removeItem(k);}).catch(function(){});}}}catch(e){}})();\n' +
+                '  sendEvent(\'quote_opened\');\n' +
+                '  if(window.IntersectionObserver){var obs=new IntersectionObserver(function(entries){entries.forEach(function(entry){if(entry.isIntersecting){sendEvent(\'section_viewed\',{section:entry.target.id});obs.unobserve(entry.target);}});},{threshold:0.4});[\'sec-pain\',\'sec-solution\',\'sec-pricing\',\'sec-terms\',\'sec-signature\'].forEach(function(id){var el=document.getElementById(id);if(el)obs.observe(el);});}\n' +
+                '  document.querySelectorAll(\'.term-item\').forEach(function(el){el.addEventListener(\'toggle\',function(){if(el.open)sendEvent(\'terms_expanded\',{term:el.querySelector(\'summary\').textContent.replace(\'＋\',\'\').trim().substring(0,50)});});});\n' +
+                '  var _sb=document.getElementById(\'submitBtn\');if(_sb)_sb.addEventListener(\'mousedown\',function(){sendEvent(\'cta_clicked\');});\n' +
+                '  window.addEventListener(\'beforeunload\',function(){sendEvent(\'time_on_page\',{seconds:Math.round((Date.now()-pageStart)/1000)});});\n';
+        }
+        function formatDate(str) {
+            if (!str) return '';
+            var parts = str.split('-');
+            return parts[2] + '.' + parts[1] + '.' + parts[0];
+        }
+        function formatMoney(num) { return num.toLocaleString('he-IL') + ' ₪'; }
+        function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+        // ===== Generate =====
+        async function generateQuote() {
+            if (!v('clientName')) { alert('חסר: שם החברה'); return; }
+            if (!v('contactName')) { alert('חסר: שם איש קשר'); return; }
+            if (!v('contactEmail')) { alert('חסר: אימייל'); return; }
+            if (!v('quoteId')) { alert('חסר: מספר הצעה'); return; }
+            if (!v('expiryDate')) { alert('חסר: תאריך תוקף'); return; }
+            if (!n('setupFee')) { alert('חסר: מחיר הטמעה'); return; }
+            if (!n('monthlyFee')) { alert('חסר: מחיר חודשי'); return; }
+
+            var pains = collectItems('painContainer');
+            var benefits = collectItems('benContainer');
+            if (!pains.length) { alert('חסר: לפחות אתגר אחד'); return; }
+            if (!benefits.length) { alert('חסר: לפחות יתרון אחד'); return; }
+
+            var setup = n('setupFee');
+            var monthly = n('monthlyFee');
+            var annual = setup + (monthly * 12);
+            var quoteId = v('quoteId');
+
+            var discount = collectDiscount();
+            // Apply discount to relevant amounts
+            var setupFinal = setup;
+            var monthlyFinal = monthly;
+            if (discount) {
+                if (discount.item === 'setup' || discount.item === 'both')
+                    setupFinal = Math.round(setup * (1 - discount.pct / 100));
+                if (discount.item === 'monthly' || discount.item === 'both')
+                    monthlyFinal = Math.round(monthly * (1 - discount.pct / 100));
+            }
+            var annualFinal = setupFinal + (monthlyFinal * 12);
+
+            var data = {
+                clientName: esc(v('clientName')),
+                clientUrl: v('clientUrl') || '',
+                contactName: esc(v('contactName')),
+                contactEmail: esc(v('contactEmail')),
+                contactPhone: esc(v('contactPhone')),
+                quoteId: esc(quoteId),
+                dateIssued: formatDate(new Date().toISOString().split('T')[0]),
+                dateExpiry: formatDate(v('expiryDate')),
+                expiryRaw: v('expiryDate'),
+                setupFee: formatMoney(setup),
+                monthlyFee: formatMoney(monthly),
+                setupFeeOriginal: setup,
+                monthlyFeeOriginal: monthly,
+                setupFeeFinal: formatMoney(setupFinal),
+                monthlyFeeFinal: formatMoney(monthlyFinal),
+                annualTotal: formatMoney(annualFinal),
+                discount: discount,
+                senderName: esc(v('senderName') || 'דרור'),
+                senderEmail: esc(v('senderEmail') || 'dror@cargonex.io'),
+                senderPhone: esc(v('senderPhone') || '050-650-3272'),
+                senderWhatsapp: v('senderWhatsapp') || '972506503272',
+                pains: pains,
+                benefits: benefits
+            };
+
+            var signerNameVal = v('signerName') || v('contactName');
+            var signerEmailVal = v('signerEmailAddr') || v('contactEmail');
+            var viewers = collectViewers();
+            var baseUrl = v('quoteBaseUrl') || 'https://quotes.cargonex.io';
+            var filename = 'quote-' + quoteId + '.html';
+
+            var html;
+            try {
+                html = await buildQuoteHTML(data);
+            } catch (e) {
+                alert(e.message);
+                return;
+            }
+            // Open preview modal — download + send links happen only after approval
+            openPreview(html, filename, quoteId, signerNameVal, signerEmailVal, viewers, baseUrl);
+        }
+
+        // ===== Discount-aware price cell builder =====
+        function priceCellHTML(type, originalNum, originalFormatted, finalFormatted, discount, vatLabel) {
+            var applies = discount && (discount.item === type || discount.item === 'both');
+            if (!applies) {
+                return '<div class="pricing-amount">' + originalFormatted + '</div><div class="pricing-vat">' + vatLabel + '</div>';
+            }
+            return '<div class="pricing-amount">' +
+                '<span style="text-decoration:line-through;color:rgba(240,240,240,0.3);font-size:14px;font-weight:400;">' + originalFormatted + '</span>' +
+                '<span style="color:#4cd97b;display:block;font-size:20px;font-weight:700;line-height:1.2;">' + finalFormatted + '</span>' +
+                '</div>' +
+                '<div class="pricing-vat">' + vatLabel + '</div>' +
+                '<div style="display:inline-block;background:rgba(76,217,123,0.12);border:1px solid rgba(76,217,123,0.3);border-radius:999px;padding:2px 10px;font-size:11px;color:#4cd97b;margin-top:6px;font-weight:600;">הנחה ' + discount.pct + '%</div>';
+        }
+
+        // ===== Fetch client logo via Clearbit → base64 =====
+        async function fetchClientLogo(url) {
+            if (!url) return '';
+            try {
+                var domain = url.replace(/^https?:\/\//, '').replace(/\/.*$/, '').trim();
+                if (!domain) return '';
+                var logoUrl = 'https://logo.clearbit.com/' + domain;
+                var resp = await fetch(logoUrl);
+                if (!resp.ok) return '';
+                var blob = await resp.blob();
+                return new Promise(function(resolve) {
+                    var reader = new FileReader();
+                    reader.onload = function() { resolve(reader.result); };
+                    reader.onerror = function() { resolve(''); };
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                return ''; // Silent fail — logo is optional
+            }
+        }
+
+        // ===== Build Quote HTML (fetch template + replace placeholders) =====
+        async function buildQuoteHTML(d) {
+            var tpl;
+            try {
+                var resp = await fetch('quote-template-v1.html');
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                tpl = await resp.text();
+            } catch (e) {
+                throw new Error('לא ניתן לטעון את תבנית ההצעה (quote-template-v1.html).\n\nפתרון: הרץ את הגנרטור מ-local server:\nnpx serve .\nואז פתח: http://localhost:3000/generator.html\n\n(' + e.message + ')');
+            }
+
+            // Fetch client logo (Clearbit → base64, silent fail)
+            var logoBase64 = await fetchClientLogo(d.clientUrl);
+            var clientLogoHtml = logoBase64
+                ? '<img class="hero-client-logo" src="' + logoBase64 + '" alt="' + d.clientName + '" />'
+                : '';
+
+            // Build pain items HTML (with comment buttons)
+            var painIcons = ['⚡', '📦', '🔄', '⏰', '💸', '🔗', '📋'];
+            var painsHTML = '';
+            for (var i = 0; i < d.pains.length; i++) {
+                var safeTitle = d.pains[i].title.replace(/'/g, "\\'");
+                painsHTML += '<div class="glass-card pain-item">' +
+                    '<div class="pain-icon">' + painIcons[i % painIcons.length] + '</div>' +
+                    '<div>' +
+                    '<div class="pain-title">' + d.pains[i].title + '</div>' +
+                    '<div class="pain-desc">' + d.pains[i].desc + '</div>' +
+                    '<div class="comment-trigger-wrap">' +
+                    '<span class="comment-trigger-label">הערות</span>' +
+                    '<button class="comment-btn" onclick="toggleComment(this,\'comment-pain-' + i + '\')" aria-label="הוסף הערה">+</button>' +
+                    '</div>' +
+                    '<div class="comment-box" id="comment-pain-' + i + '">' +
+                    '<textarea class="comment-textarea" rows="3" placeholder="הערות / שאלות / בקשת הבהרה..."></textarea>' +
+                    '<div class="comment-submit-row">' +
+                    '<button class="comment-submit-btn" onclick="submitComment(this,\'pain-' + i + '\',\'' + safeTitle + '\')">שלח הערה</button>' +
+                    '<span class="comment-sent-msg">✓ ההערה נשלחה</span>' +
+                    '</div></div>' +
+                    '</div></div>';
+            }
+
+            // Build benefit cards HTML
+            var benIcons = ['🚀', '📊', '🔒', '⚙️', '💡', '🔗', '📈'];
+            var bensHTML = '';
+            var benCols = Math.min(d.benefits.length, 3);
+            for (var j = 0; j < d.benefits.length; j++) {
+                bensHTML += '<div class="glass-card benefit-card">' +
+                    '<div class="benefit-icon">' + benIcons[j % benIcons.length] + '</div>' +
+                    '<div>' +
+                    '<div class="benefit-title">' + d.benefits[j].title + '</div>' +
+                    '<div class="benefit-desc">' + d.benefits[j].desc + '</div>' +
+                    '</div></div>';
+            }
+
+            // Build price cell divs (outer wrapper included)
+            var setupCellHtml = '<div class="pricing-col-price">' +
+                priceCellHTML('setup', d.setupFeeOriginal, d.setupFee, d.setupFeeFinal, d.discount, '+ מע"מ') +
+                '</div>';
+            var monthlyCellHtml = '<div class="pricing-col-price">' +
+                priceCellHTML('monthly', d.monthlyFeeOriginal, d.monthlyFee, d.monthlyFeeFinal, d.discount, 'לחודש + מע"מ') +
+                '</div>';
+
+            return tpl
+                .replace(/\{\{QUOTE_ID\}\}/g, d.quoteId)
+                .replace(/\{\{CLIENT_COMPANY\}\}/g, d.clientName)
+                .replace(/\{\{CLIENT_CONTACT\}\}/g, d.contactName)
+                .replace(/\{\{ISSUE_DATE\}\}/g, d.dateIssued)
+                .replace(/\{\{EXPIRY_DATE_DISPLAY\}\}/g, d.dateExpiry)
+                .replace(/\{\{EXPIRY_DATE_ISO\}\}/g, d.expiryRaw)
+                .replace(/\{\{OWNER_NAME\}\}/g, d.senderName)
+                .replace(/\{\{OWNER_EMAIL\}\}/g, d.senderEmail)
+                .replace(/\{\{OWNER_WHATSAPP_URL\}\}/g, 'https://wa.me/' + d.senderWhatsapp)
+                .replace('{{PAIN_ITEMS_HTML}}', painsHTML)
+                .replace('{{BENEFIT_ITEMS_HTML}}', bensHTML)
+                .replace('{{BEN_COLS}}', String(benCols))
+                .replace('{{SETUP_PRICE_CELL_HTML}}', setupCellHtml)
+                .replace('{{MONTHLY_PRICE_CELL_HTML}}', monthlyCellHtml)
+                .replace(/\{\{TOTAL_AMOUNT_DISPLAY\}\}/g, d.annualTotal)
+                .replace(/\{\{SETUP_FEE_DISPLAY\}\}/g, d.setupFee)
+                .replace(/\{\{MONTHLY_FEE_DISPLAY\}\}/g, d.monthlyFee)
+                .replace(/\{\{CONTACT_EMAIL_PLACEHOLDER\}\}/g, d.contactEmail)
+                .replace('{{CLIENT_LOGO_HTML}}', clientLogoHtml);
+        }
+
+        // ===== LEGACY (unused — kept for reference) =====
+        function _legacy_buildQuoteHTML_returnStart() {
+            return '<!DOCTYPE html>\n' +
+                '<html lang="he" dir="rtl">\n' +
+                '<head>\n' +
+                '  <meta charset="UTF-8"/>\n' +
+                '  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>\n' +
+                '  <meta name="theme-color" content="#0A0A0A"/>\n' +
+                '  <title>הצעת מחיר — CargoNex — ' + d.clientName + '</title>\n' +
+                '  <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;600;700&display=swap" rel="stylesheet"/>\n' +
+                '  <style>\n' +
+                '    *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}\n' +
+                '    html{-webkit-text-size-adjust:100%;}\n' +
+                '    body{background:#0A0A0A;color:#FFFFFF;font-family:\'Heebo\',sans-serif;direction:rtl;-webkit-font-smoothing:antialiased;overflow-x:hidden;}\n' +
+                '    .page-section{padding:64px 48px;max-width:900px;margin:0 auto;}\n' +
+                '    .section-eyebrow{font-size:12px;color:#E74C3C;letter-spacing:0.05em;margin-bottom:12px;text-align:center;}\n' +
+                '    .section-title{font-size:32px;font-weight:700;text-align:center;margin-bottom:48px;line-height:1.2;}\n' +
+                '    .divider{height:1px;background:rgba(255,255,255,0.06);max-width:900px;margin:0 auto;}\n' +
+                '    .glass-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:12px;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);}\n' +
+                '    .hero{padding:48px 24px 32px;text-align:center;border-bottom:1px solid rgba(255,255,255,0.08);}\n' +
+                '    .hero-logo{font-size:28px;font-weight:700;color:#E74C3C;letter-spacing:-0.02em;margin-bottom:32px;}\n' +
+                '    .hero-label{font-size:12px;color:rgba(255,255,255,0.4);letter-spacing:0.05em;margin-bottom:8px;}\n' +
+                '    .hero-quote-id{font-size:16px;font-weight:600;color:rgba(255,255,255,0.9);margin-bottom:24px;}\n' +
+                '    .hero-company{font-size:36px;font-weight:700;margin-bottom:8px;line-height:1.2;}\n' +
+                '    .hero-contact{font-size:16px;color:rgba(255,255,255,0.6);margin-bottom:32px;}\n' +
+                '    .hero-dates{display:flex;justify-content:center;gap:32px;margin-bottom:24px;flex-wrap:wrap;}\n' +
+                '    .hero-date-item{text-align:center;}\n' +
+                '    .hero-date-label{font-size:12px;color:rgba(255,255,255,0.4);margin-bottom:4px;}\n' +
+                '    .hero-date-value{font-size:14px;font-weight:600;}\n' +
+                '    .hero-date-value.expiry{color:#E74C3C;}\n' +
+                '    .hero-badges{display:flex;justify-content:center;align-items:center;gap:10px;flex-wrap:wrap;}\n' +
+                '    .badge-status{display:inline-flex;align-items:center;gap:6px;background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.4);border-radius:999px;padding:8px 20px;font-size:14px;font-weight:600;color:#E74C3C;}\n' +
+                '    .badge-countdown{display:inline-block;background:rgba(231,76,60,0.1);border:1px solid rgba(231,76,60,0.25);border-radius:999px;padding:6px 16px;font-size:13px;color:rgba(255,255,255,0.5);}\n' +
+                '    .pain-list{display:flex;flex-direction:column;gap:16px;}\n' +
+                '    .pain-item{display:flex;align-items:flex-start;gap:16px;padding:24px;}\n' +
+                '    .pain-icon{width:40px;height:40px;min-width:40px;background:rgba(231,76,60,0.15);border:1px solid rgba(231,76,60,0.3);border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;}\n' +
+                '    .pain-title{font-size:16px;font-weight:600;margin-bottom:6px;}\n' +
+                '    .pain-desc{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.7;}\n' +
+                '    .benefits-grid{display:grid;grid-template-columns:repeat(' + benCols + ',1fr);gap:16px;}\n' +
+                '    .benefit-card{padding:28px 20px;text-align:center;border-radius:16px;}\n' +
+                '    .benefit-icon{font-size:32px;margin-bottom:16px;}\n' +
+                '    .benefit-title{font-size:15px;font-weight:600;margin-bottom:8px;line-height:1.4;}\n' +
+                '    .benefit-desc{font-size:13px;color:rgba(255,255,255,0.5);line-height:1.6;}\n' +
+                '    .pricing-table{border-radius:16px;overflow:hidden;}\n' +
+                '    .pricing-header{display:grid;grid-template-columns:2fr 1fr 1fr;background:rgba(231,76,60,0.15);border-bottom:1px solid rgba(231,76,60,0.3);padding:14px 24px;}\n' +
+                '    .pricing-row{display:grid;grid-template-columns:2fr 1fr 1fr;padding:20px 24px;align-items:center;}\n' +
+                '    .pricing-row+.pricing-row{border-top:1px solid rgba(255,255,255,0.06);}\n' +
+                '    .pricing-col-label{font-size:13px;font-weight:600;color:#E74C3C;}\n' +
+                '    .pricing-col-center{text-align:center;}\n' +
+                '    .pricing-col-price{text-align:end;}\n' +
+                '    .pricing-service-name{font-size:15px;font-weight:600;margin-bottom:4px;}\n' +
+                '    .pricing-service-sub{font-size:13px;color:rgba(255,255,255,0.4);}\n' +
+                '    .pricing-amount{font-size:20px;font-weight:700;}\n' +
+                '    .pricing-vat{font-size:12px;color:rgba(255,255,255,0.4);}\n' +
+                '    .badge-type{border-radius:999px;padding:4px 12px;font-size:12px;display:inline-block;}\n' +
+                '    .badge-type.once{background:rgba(255,255,255,0.07);color:rgba(255,255,255,0.6);}\n' +
+                '    .badge-type.monthly{background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.3);color:#E74C3C;}\n' +
+                '    .pricing-total{margin-top:16px;padding:20px 24px;background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.25);border-radius:12px;display:flex;justify-content:space-between;align-items:center;}\n' +
+                '    .pricing-total-label{font-size:14px;color:rgba(255,255,255,0.6);}\n' +
+                '    .pricing-total-sub{font-size:12px;color:rgba(255,255,255,0.35);margin-top:2px;}\n' +
+                '    .pricing-total-amount{font-size:26px;font-weight:700;color:#E74C3C;}\n' +
+                '    .pricing-total-vat{font-size:12px;color:rgba(255,255,255,0.4);text-align:end;}\n' +
+                '    .terms-list{display:flex;flex-direction:column;gap:8px;}\n' +
+                '    details.term-item{border-radius:12px;overflow:hidden;}\n' +
+                '    details.term-item summary{padding:20px 24px;font-size:15px;font-weight:600;cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent;}\n' +
+                '    details.term-item summary::-webkit-details-marker{display:none;}\n' +
+                '    .term-toggle{color:#E74C3C;font-size:20px;line-height:1;transition:transform 0.2s ease;min-width:24px;text-align:center;}\n' +
+                '    details.term-item[open] .term-toggle{transform:rotate(45deg);}\n' +
+                '    .term-content{padding:16px 24px 20px;font-size:14px;color:rgba(255,255,255,0.6);line-height:1.8;border-top:1px solid rgba(255,255,255,0.06);}\n' +
+                '    .sig-section{padding:64px 48px 96px;max-width:900px;margin:0 auto;}\n' +
+                '    .sig-eyebrow{font-size:12px;color:#E74C3C;letter-spacing:0.05em;margin-bottom:12px;text-align:center;}\n' +
+                '    .sig-title{font-size:32px;font-weight:700;text-align:center;margin-bottom:12px;}\n' +
+                '    .sig-subtitle{text-align:center;color:rgba(255,255,255,0.5);font-size:14px;margin-bottom:48px;}\n' +
+                '    .sig-card{border-radius:16px;padding:40px 32px;}\n' +
+                '    .field-group{margin-bottom:24px;}\n' +
+                '    .field-label{display:block;font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:8px;}\n' +
+                '    .field-input{width:100%;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:14px 16px;color:#FFFFFF;font-size:16px;font-family:\'Heebo\',sans-serif;outline:none;transition:border-color 0.2s,box-shadow 0.2s;-webkit-appearance:none;appearance:none;}\n' +
+                '    .field-input:focus{border-color:#E74C3C;box-shadow:0 0 0 2px rgba(231,76,60,0.2);}\n' +
+                '    .field-input.rtl{direction:rtl;}\n' +
+                '    .field-input.ltr{direction:ltr;text-align:end;}\n' +
+                '    .field-error{display:none;font-size:12px;color:#E74C3C;margin-top:6px;}\n' +
+                '    .field-error.visible{display:block;}\n' +
+                '    #sigCanvas{width:100%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;cursor:crosshair;touch-action:none;display:block;}\n' +
+                '    .canvas-clear{margin-top:8px;background:none;border:none;color:rgba(255,255,255,0.35);font-size:13px;cursor:pointer;font-family:\'Heebo\',sans-serif;min-height:44px;display:inline-flex;align-items:center;}\n' +
+                '    .agree-label{display:flex;align-items:flex-start;gap:12px;cursor:pointer;margin-bottom:8px;}\n' +
+                '    .agree-label input[type="checkbox"]{width:20px;height:20px;min-width:20px;margin-top:2px;accent-color:#E74C3C;cursor:pointer;}\n' +
+                '    .agree-text{font-size:14px;color:rgba(255,255,255,0.6);line-height:1.6;}\n' +
+                '    .cta-btn{width:100%;background:#E74C3C;color:#FFFFFF;border:none;border-radius:10px;padding:18px;font-size:17px;font-weight:700;font-family:\'Heebo\',sans-serif;cursor:pointer;box-shadow:0 0 24px rgba(231,76,60,0.35);transition:all 0.2s;min-height:56px;margin-top:16px;}\n' +
+                '    .cta-btn:disabled{opacity:0.3;cursor:not-allowed;}\n' +
+                '    #expiredBanner{display:none;max-width:900px;margin:32px auto 0;padding:24px;text-align:center;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.12);border-radius:12px;}\n' +
+                '    #expiredBanner a{display:inline-flex;align-items:center;gap:6px;margin-top:12px;color:#E74C3C;font-size:14px;text-decoration:none;}\n' +
+                '    #confirmScreen{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.96);z-index:999;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:40px;}\n' +
+                '    #stickyBtn{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(20px);background:#E74C3C;color:#FFFFFF;padding:14px 32px;border-radius:999px;font-size:15px;font-weight:700;font-family:\'Heebo\',sans-serif;cursor:pointer;box-shadow:0 0 24px rgba(231,76,60,0.5);opacity:0;pointer-events:none;transition:all 0.3s cubic-bezier(0.4,0,0.2,1);z-index:100;white-space:nowrap;min-height:48px;display:flex;align-items:center;}\n' +
+                '    @media(max-width:600px){.page-section{padding:48px 16px;}.section-title{font-size:26px;}.hero{padding:36px 16px 28px;}.hero-company{font-size:28px;}.benefits-grid{grid-template-columns:1fr!important;}.benefit-card{padding:20px 16px;display:flex;align-items:center;gap:16px;text-align:start;}.benefit-icon{font-size:28px;margin-bottom:0;min-width:40px;}.pricing-header{display:none;}.pricing-row{display:flex;flex-direction:column;gap:12px;padding:20px 16px;}.pricing-col-price{text-align:start;}.pricing-total{flex-direction:column;align-items:flex-start;gap:8px;}.sig-card{padding:24px 16px;}.sig-section{padding:48px 16px 80px;}}\n' +
+                '  </style>\n' +
+                '</head>\n' +
+                '<body>\n' +
+                '\n' +
+                '<header class="hero">\n' +
+                '  <div class="hero-logo">CargoNex</div>\n' +
+                '  <div class="hero-label">מספר הצעה</div>\n' +
+                '  <div class="hero-quote-id">' + d.quoteId + '</div>\n' +
+                '  <div class="hero-company">' + d.clientName + '</div>\n' +
+                '  <div class="hero-contact">לידיעת: ' + d.contactName + '</div>\n' +
+                '  <div class="hero-dates">\n' +
+                '    <div class="hero-date-item"><div class="hero-date-label">תאריך הנפקה</div><div class="hero-date-value">' + d.dateIssued + '</div></div>\n' +
+                '    <div class="hero-date-item"><div class="hero-date-label">תוקף עד</div><div class="hero-date-value expiry">' + d.dateExpiry + '</div></div>\n' +
+                '  </div>\n' +
+                '  <div class="hero-badges">\n' +
+                '    <div class="badge-status">● ממתין לחתימה</div>\n' +
+                '    <div id="expiryCountdown" class="badge-countdown">טוען...</div>\n' +
+                '  </div>\n' +
+                '</header>\n' +
+                '\n' +
+                '<section class="page-section" id="sec-pain">\n' +
+                '  <div class="section-eyebrow">האתגר שלכם</div>\n' +
+                '  <h2 class="section-title">מה זיהינו אצלכם</h2>\n' +
+                '  <div class="pain-list">' + painsHTML + '</div>\n' +
+                '</section>\n' +
+                '\n' +
+                '<section class="page-section" id="sec-solution">\n' +
+                '  <div class="section-eyebrow">הפתרון שלנו</div>\n' +
+                '  <h2 class="section-title">מה אנחנו בונים לכם</h2>\n' +
+                '  <div class="benefits-grid">' + bensHTML + '</div>\n' +
+                '</section>\n' +
+                '<div class="divider"></div>\n' +
+                '\n' +
+                '<section class="page-section" id="sec-pricing">\n' +
+                '  <div class="section-eyebrow">ההצעה הכלכלית</div>\n' +
+                '  <h2 class="section-title">תמחור</h2>\n' +
+                '  <div class="glass-card pricing-table">\n' +
+                '    <div class="pricing-header"><div class="pricing-col-label">שירות</div><div class="pricing-col-label" style="text-align:center;">סוג</div><div class="pricing-col-label" style="text-align:end;">מחיר</div></div>\n' +
+                '    <div class="pricing-row"><div><div class="pricing-service-name">הטמעה מקוסטמת</div><div class="pricing-service-sub">Custom Setup — חד פעמי</div></div><div class="pricing-col-center"><span class="badge-type once">חד פעמי</span></div><div class="pricing-col-price">' + priceCellHTML('setup', d.setupFeeOriginal, d.setupFee, d.setupFeeFinal, d.discount, '+ מע"מ') + '</div></div>\n' +
+                '    <div class="pricing-row"><div><div class="pricing-service-name">תשתית + רישוי SaaS</div><div class="pricing-service-sub">Monthly MRR — חודשי</div></div><div class="pricing-col-center"><span class="badge-type monthly">חודשי</span></div><div class="pricing-col-price">' + priceCellHTML('monthly', d.monthlyFeeOriginal, d.monthlyFee, d.monthlyFeeFinal, d.discount, 'לחודש + מע"מ') + '</div></div>\n' +
+                '  </div>\n' +
+                '  <div class="pricing-total"><div><div class="pricing-total-label">סה"כ התחייבות שנתית</div><div class="pricing-total-sub">הטמעה + 12 חודשי רישוי</div></div><div><div class="pricing-total-amount">' + d.annualTotal + '</div><div class="pricing-total-vat">לפני מע"מ</div></div></div>\n' +
+                '</section>\n' +
+                '<div class="divider"></div>\n' +
+                '\n' +
+                '<section class="page-section" id="sec-terms">\n' +
+                '  <div class="section-eyebrow">תנאים משפטיים</div>\n' +
+                '  <h2 class="section-title" style="font-size:24px;margin-bottom:32px;">תנאי ההתקשרות</h2>\n' +
+                '  <div class="terms-list">\n' +
+                '    <details class="term-item glass-card"><summary>מבנה התקשרות ותשלומים<span class="term-toggle">＋</span></summary><div class="term-content">התשלום בגין ההטמעה ישולם בשני תשלומים שווים: 50% בחתימה על הסכם זה ו-50% עם השלמת ההטמעה. דמי הרישוי החודשיים ישולמו מראש בתחילת כל חודש קלנדרי.</div></details>\n' +
+                '    <details class="term-item glass-card"><summary>קניין רוחני וזכויות שימוש<span class="term-toggle">＋</span></summary><div class="term-content">כל הקוד, המערכות והממשקים שיפותחו במסגרת ההסכם הינם קניינה הבלעדי של CargoNex. הלקוח מקבל רישיון שימוש בלתי-בלעדי לצורך פעילותו העסקית בלבד.</div></details>\n' +
+                '    <details class="term-item glass-card"><summary>הגבלת אחריות מקצועית<span class="term-toggle">＋</span></summary><div class="term-content">אחריותה הכוללת של CargoNex לא תעלה על סכום דמי הרישוי החודשיים ששולמו ב-3 החודשים שקדמו לאירוע. CargoNex לא תהיה אחראית לנזקים עקיפים מכל סוג שהוא.</div></details>\n' +
+                '    <details class="term-item glass-card"><summary>סודיות<span class="term-toggle">＋</span></summary><div class="term-content">שני הצדדים מתחייבים לשמור בסוד את כל המידע העסקי שיוחלף ביניהם במסגרת ההתקשרות. התחייבות זו תעמוד בתוקפה למשך 3 שנים לאחר סיום ההסכם.</div></details>\n' +
+                '    <details class="term-item glass-card"><summary>דין וסמכות שיפוט<span class="term-toggle">＋</span></summary><div class="term-content">הסכם זה יפורש בהתאם לדין הישראלי. סמכות השיפוט הבלעדית לכל מחלוקת הנובעת מהסכם זה תהא לבתי המשפט המוסמכים במחוז תל אביב.</div></details>\n' +
+                '  </div>\n' +
+                '</section>\n' +
+                '<div class="divider"></div>\n' +
+                '\n' +
+                '<div id="expiredBanner">\n' +
+                '  <div style="font-size:15px;font-weight:600;margin-bottom:8px;">ההצעה פגה ב-' + d.dateExpiry + '</div>\n' +
+                '  <div style="font-size:14px;color:rgba(255,255,255,0.5);margin-bottom:16px;">ליצירת קשר ולקבלת הצעה מעודכנת:</div>\n' +
+                '  <div style="font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:4px;">' + d.senderName + '</div>\n' +
+                '  <div style="font-size:14px;color:rgba(255,255,255,0.5);">' + d.senderEmail + '</div>\n' +
+                '  <a href="https://wa.me/' + d.senderWhatsapp + '">📱 WhatsApp ←</a>\n' +
+                '</div>\n' +
+                '\n' +
+                '<section class="sig-section" id="sec-signature">\n' +
+                '  <div class="sig-eyebrow">אישור וחתימה</div>\n' +
+                '  <h2 class="sig-title">חתימה אלקטרונית</h2>\n' +
+                '  <p class="sig-subtitle">חתימתך מהווה אישור מלא לתנאי ההצעה לעיל</p>\n' +
+                '  <div class="glass-card sig-card">\n' +
+                '    <div class="field-group"><label class="field-label" for="signerName">שם מלא *</label><input class="field-input rtl" type="text" id="signerName" placeholder="שם פרטי ושם משפחה" autocomplete="name"/><div class="field-error" id="errName">נא להזין שם מלא</div></div>\n' +
+                '    <div class="field-group"><label class="field-label" for="signerEmail">אימייל *</label><input class="field-input ltr" type="email" id="signerEmail" placeholder="' + d.contactEmail + '" autocomplete="email" inputmode="email"/><div class="field-error" id="errEmail">נא להזין אימייל תקין</div></div>\n' +
+                '    <div class="field-group"><label class="field-label">חתימה *</label><canvas id="sigCanvas" width="640" height="220"></canvas><div class="field-error" id="errSig">נא לחתום בשטח החתימה</div><button class="canvas-clear" onclick="clearCanvas()">× נקה חתימה</button></div>\n' +
+                '    <label class="agree-label"><input type="checkbox" id="agreeCheck"/><span class="agree-text">קראתי ואני מסכים לכל תנאי ההצעה המפורטים לעיל, לרבות תנאי התשלום, הקניין הרוחני, הסודיות וסמכות השיפוט.</span></label>\n' +
+                '    <div class="field-error" id="errAgree" style="margin-bottom:8px;">נא לאשר את קריאת התנאים</div>\n' +
+                '    <button class="cta-btn" id="submitBtn" onclick="submitSignature()">חותם על ההצעה ומאשר ✓</button>\n' +
+                '  </div>\n' +
+                '</section>\n' +
+                '\n' +
+                '<div id="confirmScreen">\n' +
+                '  <div style="font-size:72px;margin-bottom:24px;">✅</div>\n' +
+                '  <h2 style="font-size:28px;font-weight:700;margin-bottom:12px;">ההצעה נחתמה בהצלחה</h2>\n' +
+                '  <p id="confirmEmailNote" style="display:none;color:rgba(255,255,255,0.6);font-size:15px;margin-bottom:8px;">מייל אישור נשלח לכתובת שלך ולצוות CargoNex.</p>\n' +
+                '  <p style="color:rgba(255,255,255,0.4);font-size:14px;margin-bottom:8px;">נציג CargoNex יצור איתך קשר בקרוב.</p>\n' +
+                '  <p id="confirmTimestamp" style="color:rgba(255,255,255,0.3);font-size:13px;"></p>\n' +
+                '</div>\n' +
+                '\n' +
+                '<div id="stickyBtn" onclick="document.getElementById(\'submitBtn\').scrollIntoView({behavior:\'smooth\'})">לחתימה ←</div>\n' +
+                '\n' +
+                '<script>\n' +
+                '  var canvas = document.getElementById(\'sigCanvas\');\n' +
+                '  var ctx = canvas.getContext(\'2d\');\n' +
+                '  var drawing = false, hasSig = false;\n' +
+                '  function getPos(e){var r=canvas.getBoundingClientRect();var src=e.touches?e.touches[0]:e;return{x:(src.clientX-r.left)*(canvas.width/r.width),y:(src.clientY-r.top)*(canvas.height/r.height)};}\n' +
+                '  canvas.addEventListener(\'mousedown\',function(e){drawing=true;var p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);});\n' +
+                '  canvas.addEventListener(\'mousemove\',function(e){if(!drawing)return;var p=getPos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=\'#FFFFFF\';ctx.lineWidth=2.5;ctx.lineCap=\'round\';ctx.lineJoin=\'round\';ctx.stroke();hasSig=true;});\n' +
+                '  canvas.addEventListener(\'mouseup\',function(){drawing=false;});\n' +
+                '  canvas.addEventListener(\'mouseleave\',function(){drawing=false;});\n' +
+                '  canvas.addEventListener(\'touchstart\',function(e){e.preventDefault();drawing=true;var p=getPos(e);ctx.beginPath();ctx.moveTo(p.x,p.y);},{passive:false});\n' +
+                '  canvas.addEventListener(\'touchmove\',function(e){e.preventDefault();if(!drawing)return;var p=getPos(e);ctx.lineTo(p.x,p.y);ctx.strokeStyle=\'#FFFFFF\';ctx.lineWidth=2.5;ctx.lineCap=\'round\';ctx.lineJoin=\'round\';ctx.stroke();hasSig=true;},{passive:false});\n' +
+                '  canvas.addEventListener(\'touchend\',function(e){e.preventDefault();drawing=false;},{passive:false});\n' +
+                '  function clearCanvas(){ctx.clearRect(0,0,canvas.width,canvas.height);hasSig=false;}\n' +
+                '\n' +
+                '  var expiryDate=new Date(\'' + d.expiryRaw + '\');\n' +
+                '  var daysLeft=Math.ceil((expiryDate-new Date())/(1000*60*60*24));\n' +
+                '  var countdownEl=document.getElementById(\'expiryCountdown\');\n' +
+                '  var submitBtn=document.getElementById(\'submitBtn\');\n' +
+                '  var stickyBtn=document.getElementById(\'stickyBtn\');\n' +
+                '  if(daysLeft<=0){countdownEl.textContent=\'ההצעה פגה תוקפה\';countdownEl.style.color=\'rgba(255,255,255,0.4)\';submitBtn.disabled=true;submitBtn.textContent=\'ההצעה פגה תוקפה\';document.getElementById(\'expiredBanner\').style.display=\'block\';stickyBtn.style.display=\'none\';}else if(daysLeft<=7){countdownEl.textContent=\'⏳ ההצעה תפוג בעוד \'+daysLeft+\' ימים\';countdownEl.style.color=\'#E74C3C\';}else{countdownEl.textContent=\'ההצעה תקפה עוד \'+daysLeft+\' ימים\';}\n' +
+                '\n' +
+                '  window.addEventListener(\'scroll\',function(){var s=window.scrollY/(document.body.scrollHeight-window.innerHeight);if(s>0.5&&daysLeft>0){stickyBtn.style.opacity=\'1\';stickyBtn.style.pointerEvents=\'auto\';stickyBtn.style.transform=\'translateX(-50%) translateY(0)\';}else{stickyBtn.style.opacity=\'0\';stickyBtn.style.pointerEvents=\'none\';stickyBtn.style.transform=\'translateX(-50%) translateY(20px)\';}},{passive:true});\n' +
+                '\n' +
+                '  function showErr(id){document.getElementById(id).classList.add(\'visible\');}\n' +
+                '  function hideErr(id){document.getElementById(id).classList.remove(\'visible\');}\n' +
+                '  document.getElementById(\'signerName\').addEventListener(\'input\',function(){hideErr(\'errName\');});\n' +
+                '  document.getElementById(\'signerEmail\').addEventListener(\'input\',function(){hideErr(\'errEmail\');});\n' +
+                '  document.getElementById(\'agreeCheck\').addEventListener(\'change\',function(){hideErr(\'errAgree\');});\n' +
+                '\n' +
+                '  async function submitSignature(){\n' +
+                '    var name=document.getElementById(\'signerName\').value.trim();\n' +
+                '    var email=document.getElementById(\'signerEmail\').value.trim();\n' +
+                '    var agree=document.getElementById(\'agreeCheck\').checked;\n' +
+                '    var valid=true;\n' +
+                '    if(!name){showErr(\'errName\');valid=false;}\n' +
+                '    if(!email||!email.includes(\'@\')){showErr(\'errEmail\');valid=false;}\n' +
+                '    if(!hasSig){showErr(\'errSig\');valid=false;}\n' +
+                '    if(!agree){showErr(\'errAgree\');valid=false;}\n' +
+                '    if(!valid)return;\n' +
+                '    var btn=document.getElementById(\'submitBtn\');\n' +
+                '    btn.disabled=true;\n' +
+                '    btn.textContent=\'⏳ שולח...\';\n' +
+                '    var sigBase64=canvas.toDataURL(\'image/png\');\n' +
+                '    sendEvent(\'quote_signed\');\n' +
+                '    try{\n' +
+                '      var res=await fetch(\'https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/sign-quote\',{\n' +
+                '        method:\'POST\',\n' +
+                '        headers:{\'Content-Type\':\'application/json\'},\n' +
+                '        body:JSON.stringify({\n' +
+                '          quote_id:\'' + d.quoteId + '\',\n' +
+                '          signer_name:name,\n' +
+                '          signer_email:email,\n' +
+                '          signature_b64:sigBase64,\n' +
+                '          client_name:\'' + d.clientName + '\',\n' +
+                '          setup_fee:\'' + d.setupFee + '\',\n' +
+                '          monthly_fee:\'' + d.monthlyFee + '\',\n' +
+                '          owner_email:\'' + d.senderEmail + '\',\n' +
+                '          session_id:SESSION_ID\n' +
+                '        })\n' +
+                '      });\n' +
+                '      if(!res.ok){var e=await res.json().catch(function(){return{};});throw new Error(e.error||\'שגיאת שרת \'+res.status);}\n' +
+                '      var ts=new Date().toLocaleString(\'he-IL\',{timeZone:\'Asia/Jerusalem\'});\n' +
+                '      document.getElementById(\'confirmTimestamp\').textContent=\'נחתם ב־\'+ts;\n' +
+                '      document.getElementById(\'confirmEmailNote\').style.display=\'block\';\n' +
+                '      document.getElementById(\'confirmScreen\').style.display=\'flex\';\n' +
+                '    }catch(err){\n' +
+                '      btn.disabled=false;\n' +
+                '      btn.textContent=\'חותם על ההצעה ומאשר ✓\';\n' +
+                '      alert(\'שגיאה בשליחה: \'+err.message+\'\\nנסה שוב.\');\n' +
+                '    }\n' +
+                '  }\n' +
+                buildAnalyticsJS(d.quoteId) +
+                '<\/script>\n' +
+                '\n' +
+                '</body>\n' +
+                '</html>';
+        }
+
+        // ===== DISCOUNT SECTION =====
+        function toggleDiscountSection() {
+            var sec = document.getElementById('discountSection');
+            var btn = document.getElementById('discountToggleBtn');
+            var isOpen = sec.style.display !== 'none';
+            sec.style.display = isOpen ? 'none' : 'block';
+            btn.textContent = isOpen ? '＋ הוסף הנחה לרכיב בהצעה' : '× הסר הנחה';
+            if (isOpen) {
+                document.getElementById('discountItem').value = '';
+                document.getElementById('discountPct').value = '';
+                document.getElementById('discountPreview').textContent = '';
+            }
+        }
+
+        function updateDiscountPreview() {
+            var item = document.getElementById('discountItem').value;
+            var pct = parseFloat(document.getElementById('discountPct').value) || 0;
+            var setup = parseFloat(document.getElementById('setupFee').value) || 0;
+            var monthly = parseFloat(document.getElementById('monthlyFee').value) || 0;
+            var preview = document.getElementById('discountPreview');
+            if (!preview) return;
+            if (!item || !pct) { preview.textContent = ''; return; }
+            var lines = [];
+            if ((item === 'setup' || item === 'both') && setup) {
+                var disc = Math.round(setup * pct / 100);
+                lines.push('הטמעה: ₪' + setup.toLocaleString('he-IL') + ' → ₪' + (setup - disc).toLocaleString('he-IL') + ' (חיסכון ₪' + disc.toLocaleString('he-IL') + ')');
+            }
+            if ((item === 'monthly' || item === 'both') && monthly) {
+                var discM = Math.round(monthly * pct / 100);
+                lines.push('חודשי: ₪' + monthly.toLocaleString('he-IL') + ' → ₪' + (monthly - discM).toLocaleString('he-IL') + '/חודש');
+            }
+            preview.innerHTML = '<span style="color:rgba(76,217,123,0.8);">✓ ' + lines.join(' | ') + '</span>';
+        }
+
+        function collectDiscount() {
+            var sec = document.getElementById('discountSection');
+            if (sec.style.display === 'none') return null;
+            var item = document.getElementById('discountItem').value;
+            var pct = parseFloat(document.getElementById('discountPct').value) || 0;
+            if (!item || !pct) return null;
+            return { item: item, pct: pct };
+        }
+
+        // ===== MULTI-RECIPIENT =====
+        const SUPABASE_SEND = 'https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/send-quote-links';
+        var viewerCount = 0;
+
+        function addViewer() {
+            viewerCount++;
+            var row = document.createElement('div');
+            row.className = 'item-row';
+            row.id = 'viewer-row-' + viewerCount;
+            row.innerHTML =
+                '<div class="item-row-header">' +
+                '<span class="item-num" style="color:rgba(255,255,255,0.5);">&#128065; צופה ' + viewerCount + '</span>' +
+                '<button type="button" class="remove-btn" onclick="document.getElementById(\'viewer-row-' + viewerCount + '\').remove()">× הסר</button>' +
+                '</div>' +
+                '<div class="grid2">' +
+                '<div class="field"><label>שם מלא</label><input type="text" class="viewer-name" placeholder="שם הצופה" /></div>' +
+                '<div class="field"><label>אימייל</label><input type="email" class="viewer-email" placeholder="viewer@company.com" style="direction:ltr;text-align:right;" /></div>' +
+                '</div>';
+            document.getElementById('viewersContainer').appendChild(row);
+        }
+
+        function collectViewers() {
+            var rows = document.querySelectorAll('#viewersContainer .item-row');
+            var viewers = [];
+            rows.forEach(function(row) {
+                var name = row.querySelector('.viewer-name').value.trim();
+                var email = row.querySelector('.viewer-email').value.trim();
+                if (email) viewers.push({ name: name, email: email });
+            });
+            return viewers;
+        }
+
+        async function sendQuoteLinks(quoteId, filename, signerName, signerEmail, viewers, baseUrl) {
+            try {
+                var res = await fetch(SUPABASE_SEND, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quote_id: quoteId,
+                        quote_filename: filename,
+                        base_url: baseUrl,
+                        signer: { name: signerName, email: signerEmail },
+                        viewers: viewers
+                    })
+                });
+                var data = await res.json();
+                if (data.ok) {
+                    console.log('[QuoteGen] Links sent. Signer:', data.signer_link);
+                } else {
+                    console.warn('[QuoteGen] send-quote-links error:', data.error);
+                }
+            } catch (e) {
+                console.warn('[QuoteGen] sendQuoteLinks failed:', e.message);
+            }
+        }
+
+        // ===== PREVIEW MODAL =====
+        var _pendingDownload = null;
+
+        function openPreview(html, filename, quoteId, signerNameVal, signerEmailVal, viewers, baseUrl) {
+            _pendingDownload = { html: html, filename: filename, quoteId: quoteId,
+                signerNameVal: signerNameVal, signerEmailVal: signerEmailVal,
+                viewers: viewers, baseUrl: baseUrl };
+            var modal = document.getElementById('previewModal');
+            var frame = document.getElementById('previewFrame');
+            var label = document.getElementById('previewQuoteLabel');
+            if (label) label.textContent = filename;
+            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            frame.src = URL.createObjectURL(blob);
+            modal.classList.add('open');
+        }
+
+        function closePreview() {
+            var modal = document.getElementById('previewModal');
+            modal.classList.remove('open');
+            var frame = document.getElementById('previewFrame');
+            if (frame.src && frame.src.startsWith('blob:')) URL.revokeObjectURL(frame.src);
+            frame.src = '';
+            _pendingDownload = null;
+        }
+
+        function confirmAndDownload() {
+            if (!_pendingDownload) return;
+            var pd = _pendingDownload;
+            var blob = new Blob([pd.html], { type: 'text/html;charset=utf-8' });
+            var a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = pd.filename;
+            a.click();
+            if (pd.signerEmailVal) {
+                sendQuoteLinks(pd.quoteId, pd.filename, pd.signerNameVal, pd.signerEmailVal, pd.viewers, pd.baseUrl);
+            }
+            closePreview();
+        }
+
+    </script>
+
+    <!-- Preview Modal -->
+    <div id="previewModal">
+        <div id="previewTopBar">
+            <div class="preview-label">תצוגה מקדימה — <strong id="previewQuoteLabel"></strong></div>
+            <div style="display:flex;gap:10px;">
+                <button class="preview-action-btn back" onclick="closePreview()">&#8592; חזור לעריכה</button>
+                <button class="preview-action-btn confirm" onclick="confirmAndDownload()">&#10003; אשר והורד קובץ</button>
+            </div>
+        </div>
+        <iframe id="previewFrame" title="תצוגה מקדימה של ההצעה"></iframe>
+    </div>
+
+</body>
+</html>

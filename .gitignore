@@ -1,0 +1,24 @@
+# Wrangler cache
+.wrangler/
+quotes/.wrangler/
+
+# Environment files
+.env
+.env.local
+*.env
+
+# Node modules (אם יש)
+node_modules/
+pdf-generator/node_modules/
+
+# Supabase temp
+supabase/.temp/
+supabase/supabase/
+pdf-generator/supabase/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VSCode
+.vscode/

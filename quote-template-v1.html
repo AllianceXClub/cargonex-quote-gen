@@ -616,6 +616,19 @@
             padding-bottom: calc(40px + env(safe-area-inset-bottom));
         }
 
+        /* Progress Bar */
+        #progressBar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            height: 3px;
+            width: 0%;
+            background: #E74C3C;
+            z-index: 9998;
+            transition: width 0.1s linear;
+            box-shadow: 0 0 8px rgba(231,76,60,0.6);
+        }
+
         /* Sticky CTA */
         #stickyBtn {
             position: fixed;
@@ -1202,6 +1215,9 @@
             <span class="auth-badge" id="authExpiryBadge">⏱ בטעינה...</span>
         </div>
     </div>
+    <!-- Progress Bar -->
+    <div id="progressBar"></div>
+
     <!-- Sticky Pulse Ghost -->
     <div id="stickyPulse">לחתימה ←</div>
 
@@ -1531,6 +1547,13 @@
                 setTimeout(() => { authScreen.style.display = 'none'; }, 520);
             }, 2200);
         })();
+
+        // ===== PROGRESS BAR =====
+        const progressBar = document.getElementById('progressBar');
+        window.addEventListener('scroll', () => {
+            const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
+            progressBar.style.width = Math.min(pct, 100) + '%';
+        }, { passive: true });
 
         // ===== SCROLL REVEAL =====
         if (window.IntersectionObserver) {

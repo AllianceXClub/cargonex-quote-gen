@@ -1248,6 +1248,7 @@
 
         // ===== MULTI-RECIPIENT =====
         const SUPABASE_SEND = 'https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/send-quote-links';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRqaXRld2dpc3p1a3F5anVqeHJoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NTMxMjMsImV4cCI6MjA5NTEyOTEyM30.iSCj1gJmP2mELLOQB4iw5HS_J3dsYhaZJrZ6vyrexxk';
         var viewerCount = 0;
 
         function addViewer() {
@@ -1282,7 +1283,7 @@
             try {
                 var res = await fetch(SUPABASE_SEND, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
                     body: JSON.stringify({
                         quote_id: quoteId,
                         quote_filename: filename,

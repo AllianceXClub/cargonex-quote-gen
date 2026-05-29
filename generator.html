@@ -448,7 +448,7 @@
             <input type="text" id="clientUrl" placeholder="https://acme.com" style="direction:ltr;text-align:right;" />
             <div style="font-size:12px;color:rgba(255,255,255,0.35);margin-top:4px;">אופציונלי — הלוגו יישלף אוטומטית לפי הדומיין</div>
         </div>
-        <div class="field" id="logoUploadField" style="display:none;">
+        <div class="field" id="logoUploadField">
             <label>העלאת לוגו ידנית</label>
             <input type="file" id="logoFileInput" accept="image/*"
                 style="background:rgba(255,255,255,0.03);border:1px solid rgba(231,76,60,0.4);border-radius:8px;padding:10px 16px;color:#fff;font-size:14px;font-family:Heebo,sans-serif;width:100%;cursor:pointer;" />
@@ -1313,7 +1313,10 @@
             var frame = document.getElementById('previewFrame');
             var label = document.getElementById('previewQuoteLabel');
             if (label) label.textContent = filename;
-            var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+            var previewHtml = html.replace('</head>',
+                '<style>#sec-signature,.sig-section{opacity:0.35;pointer-events:none;}' +
+                '#sec-signature::before,.sig-section::before{content:"👁️ תצוגה מקדימה — חתימה אינה אפשרית";display:block;background:rgba(231,76,60,0.12);border:1px solid rgba(231,76,60,0.3);border-radius:8px;color:rgba(255,255,255,0.7);font-size:14px;text-align:center;padding:12px;margin-bottom:16px;font-family:Heebo,sans-serif;}</style></head>');
+            var blob = new Blob([previewHtml], { type: 'text/html;charset=utf-8' });
             frame.src = URL.createObjectURL(blob);
             modal.classList.add('open');
         }

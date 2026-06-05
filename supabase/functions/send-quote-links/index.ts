@@ -42,8 +42,9 @@ serve(async (req) => {
       quote_id,
       quote_filename,
       base_url,
-      signer,      // { name, email }
-      viewers = [] // [{ name, email }]
+      signer,        // { name, email }
+      viewers = [],  // [{ name, email }]
+      owner_email = Deno.env.get("ADMIN_EMAIL") || ""
     } = body;
 
     if (!quote_id || !signer?.email) {
@@ -104,7 +105,7 @@ serve(async (req) => {
         </a>
         <p style="font-size:13px;color:rgba(240,240,240,0.35);margin-top:24px;line-height:1.6;">
           קישור זה מיועד עבורך בלבד ותקף ל-30 יום.<br/>
-          לשאלות: <a href="mailto:dror@alliancex.cloud" style="color:#E74C3C;">dror@alliancex.cloud</a>
+          לשאלות: <a href="mailto:${owner_email}" style="color:#E74C3C;">${owner_email}</a>
         </p>
       </div>`
     );
@@ -128,7 +129,7 @@ serve(async (req) => {
           </a>
           <p style="font-size:13px;color:rgba(240,240,240,0.35);margin-top:24px;line-height:1.6;">
             קישור זה מיועד עבורך בלבד (צפייה בלבד, ללא הרשאת חתימה).<br/>
-            לשאלות: <a href="mailto:dror@alliancex.cloud" style="color:#E74C3C;">dror@alliancex.cloud</a>
+            לשאלות: <a href="mailto:${owner_email}" style="color:#E74C3C;">${owner_email}</a>
           </p>
         </div>`
       );

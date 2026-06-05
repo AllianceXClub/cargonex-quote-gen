@@ -321,7 +321,7 @@ The form generator outputs all three templates ready to copy-paste.
   "benefits": ["custom benefit 1", "custom benefit 2", "custom benefit 3"],
   "notes": "הערות נוספות אופציונליות",
   "sender_name": "דרור",
-  "sender_email": "dror@alliancex.cloud",
+  "sender_email": "dror@cargonex.io",
   "sender_phone": "050-650-3272",
   "version": 1
 }
@@ -419,7 +419,7 @@ Quote-Gen/
 
 ## Key Contacts
 
-- **Dror** — Product owner, dror@alliancex.cloud, 050-650-3272
+- **Dror** — Product owner, dror@cargonex.io, 050-650-3272
 - **Avi** — 050-226-5757
 - **Website:** [www.cargonex.io](https://www.cargonex.io)
 - **Email:** hello@cargonex.io

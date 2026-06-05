@@ -9,7 +9,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY")!;
-const ADMIN_EMAIL = "dror@alliancex.cloud";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL") || "";
 const FROM_EMAIL = "CargoNex Alerts <hello@cargonex.io>"; // must be verified domain in Resend
 
 const corsHeaders = {
@@ -50,6 +50,11 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+    // Bot detection BEFORE insert — so first-open count is accurate
+    const ua = (user_agent || "").toLowerCase();
+    const BOT_UA = ["whatsapp","telegram","twitterbot","facebookexternalhit","linkedinbot","slackbot","discordbot","googlebot","bingbot","yandex"];
+    const isBot = event === "quote_opened" && BOT_UA.some(b => ua.includes(b));
+
     // Write event to DB
     const { error } = await supabase.from("quote_events").insert({
       event_type: event,
@@ -57,7 +62,7 @@ serve(async (req) => {
       session_id: session_id || null,
       user_agent: user_agent || null,
       ip_address: req.headers.get("x-forwarded-for") || null,
-      metadata: metadata || {},
+      metadata: { ...(metadata || {}), ...(isBot ? { is_bot: true } : {}) },
       replayed: replayed || false,
       occurred_at: timestamp || new Date().toISOString(),
     });
@@ -69,9 +74,9 @@ serve(async (req) => {
     }
 
     // Admin notifications — fire and forget, don't block response
-    if (!replayed) {
+    if (!replayed && !isBot) {
       if (event === "quote_opened") {
-        // Only notify on the FIRST open of this quote
+        // Only notify on the FIRST non-bot open of this quote
         const { count } = await supabase
           .from("quote_events")
           .select("*", { count: "exact", head: true })
@@ -126,18 +131,7 @@ serve(async (req) => {
         }
       }
 
-      // Bot filter — quote_opened from link preview crawlers
-      if (event === "quote_opened") {
-        const ua = (user_agent || "").toLowerCase();
-        const BOT_UA = ["whatsapp","telegram","twitterbot","facebookexternalhit","linkedinbot","slackbot","discordbot","googlebot","bingbot","yandex"];
-        const isBot = BOT_UA.some(b => ua.includes(b));
-        if (isBot) {
-          // Already inserted above — mark it as bot in metadata retroactively (best-effort update)
-          await supabase.from("quote_events")
-            .update({ metadata: { ...(metadata || {}), is_bot: true } })
-            .eq("quote_id", quote_id).eq("event_type", "quote_opened").eq("session_id", session_id || "");
-        }
-      }
+      // Bot filter already applied before insert — no retroactive update needed
     }
 
     return new Response(JSON.stringify({ ok: true }), {

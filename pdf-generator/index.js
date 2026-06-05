@@ -13,7 +13,7 @@ import express from "express";
 import { chromium } from "playwright";
 import { createClient } from "@supabase/supabase-js";
 import { Resend } from "resend";
-import ws from "ws";
+
 
 const app = express();
 app.use(express.json({ limit: "10mb" }));
@@ -22,16 +22,18 @@ const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const PDF_GENERATOR_SECRET = process.env.PDF_GENERATOR_SECRET;
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const OWNER_EMAIL = process.env.OWNER_EMAIL || "dror@alliancex.cloud";
+const OWNER_EMAIL = process.env.OWNER_EMAIL || "";
 const FROM_EMAIL = process.env.FROM_EMAIL || "CargoNex <hello@cargonex.io>";
 const STORAGE_BUCKET = "signed-quotes";
-const SIGNED_URL_EXPIRY_SECS = 7 * 24 * 60 * 60; // 7 days
 
-const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY, {
-  realtime: { transport: ws },
-});
+const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 const resend = new Resend(RESEND_API_KEY);
 
+// Fail fast — don't start if critical env vars are missing
+if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY || !PDF_GENERATOR_SECRET || !RESEND_API_KEY) {
+  console.error("[STARTUP] Missing required env vars. Refusing to start.");
+  process.exit(1);
+}
 // Auth middleware
 function requireSecret(req, res, next) {
   const auth = req.headers.authorization || "";
@@ -54,45 +56,121 @@ app.post("/generate-pdf", requireSecret, async (req, res) => {
     signature_b64,
     owner_email,
     viewer_emails = [],
+    quote_html,
+    stamp_image_url,
   } = req.body;
 
   console.log(`[PDF] Starting generation for ${quote_id} / ${signature_id}`);
 
   let browser;
   try {
-    // 1. Generate PDF with Playwright
     browser = await chromium.launch({
       args: [
         "--no-sandbox",
         "--disable-setuid-sandbox",
-        "--disable-dev-shm-usage",   // קריטי ל-Cloud Run — מונע crash של Chromium
+        "--disable-dev-shm-usage",
         "--disable-gpu",
-        "--single-process",
+        "--disable-extensions",
+        "--run-all-compositor-stages-before-draw",
       ]
     });
     const page = await browser.newPage();
-    await page.setViewportSize({ width: 1200, height: 1200 });
+    await page.setViewportSize({ width: 1200, height: 1600 });
 
     const signedAtFormatted = new Date(signed_at).toLocaleString("he-IL", { timeZone: "Asia/Jerusalem" });
 
-    const html = buildSignedPdfHtml({
-      quote_id, signer_name, signer_email, client_name,
-      setup_fee, monthly_fee, signed_at: signedAtFormatted, signature_id, signature_b64,
-      owner_email: owner_email || OWNER_EMAIL
-    });
+    let pdfBuffer;
 
-    await page.setContent(html, { waitUntil: "networkidle" });
+    if (quote_html) {
+      // PATH A — HTML מלא מGenerator
+      // Block analytics/tracking so networkidle never hangs
+      await page.route('**/*', (route) => {
+        const url = route.request().url();
+        if (url.includes('supabase.co/functions') || url.includes('track-event') || url.includes('analytics')) {
+          route.abort();
+        } else {
+          route.continue();
+        }
+      });
 
-    const pdfBuffer = await page.pdf({
-      format: "A4",
-      printBackground: true,
-      margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" },
-    });
+      await page.setContent(quote_html, { waitUntil: "domcontentloaded", timeout: 30000 });
+      await page.waitForTimeout(1500);
+
+      await page.evaluate(({ signer_name, signed_at, sig_b64, signature_id, stamp_url }) => {
+        // Fix black pages — remove backdrop-filter and force backgrounds
+        var style = document.createElement('style');
+        style.textContent = '* { backdrop-filter: none !important; -webkit-backdrop-filter: none !important; } ' +
+          '.page-section, section, .glass, [class*="glass"] { background: rgba(20,20,20,0.95) !important; }';
+        document.head.appendChild(style);
+
+        // Hide auth splash screen (shown when no token in URL)
+        const authScreen = document.getElementById('authScreen');
+        if (authScreen) authScreen.style.display = 'none';
+
+        const sigSec = document.querySelector('#sec-signature');
+        if (sigSec) {
+          sigSec.innerHTML = `
+            <div style="padding:48px 32px; text-align:center;">
+              <h2 style="font-size:24px; font-weight:700; margin-bottom:8px;">
+                ✅ ההצעה נחתמה
+              </h2>
+              <p style="color:rgba(255,255,255,0.6); font-size:14px; margin-bottom:24px;">
+                חתימה אלקטרונית — חוק חתימה אלקטרונית, התשס"א-2001
+              </p>
+              <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:24px; display:inline-block; position:relative;">
+                ${stamp_url ? `<img src="${stamp_url.replace(/"/g, '%22')}" style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); opacity:0.2; width:160px; pointer-events:none;"/>` : ''}
+                <img src="${sig_b64}" style="max-width:280px; max-height:140px; display:block; margin:0 auto; position:relative; z-index:2;"/>
+                <p style="margin-top:16px; font-weight:600; font-size:16px;">${signer_name}</p>
+                <p style="color:rgba(255,255,255,0.5); font-size:13px;">${signed_at}</p>
+                <p style="color:rgba(255,255,255,0.3); font-size:11px; margin-top:8px;">
+                  מזהה חתימה: ${signature_id}
+                </p>
+              </div>
+            </div>`;
+        }
+        document.querySelectorAll('#stickyBtn, #stickyPulse, .canvas-clear, .agree-label, #progressBar')
+          .forEach(e => { e.style.display = 'none'; });
+        // Update status badge
+        var statusBtns = document.querySelectorAll('.status-badge, [class*="status"], #quoteStatus');
+        statusBtns.forEach(function (el) {
+          if (el.textContent && el.textContent.includes('ממתין לחתימה')) {
+            el.textContent = '✅ נחתם';
+            el.style.background = 'rgba(76,217,123,0.15)';
+            el.style.borderColor = 'rgba(76,217,123,0.4)';
+            el.style.color = '#4cd97b';
+          }
+        });
+        // Expand all terms — must be visible in signed PDF
+        document.querySelectorAll('details.term-item').forEach(d => { d.open = true; });
+      }, { signer_name, signed_at: signedAtFormatted, sig_b64: signature_b64, signature_id, stamp_url: stamp_image_url || null });
+
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "0", bottom: "0", left: "0", right: "0" }
+      });
+
+    } else {
+      // PATH B — fallback: HTML מינימלי (no analytics, domcontentloaded is safe)
+      const html = buildSignedPdfHtml({
+        quote_id, signer_name, signer_email, client_name,
+        setup_fee, monthly_fee, signed_at: signedAtFormatted,
+        signature_id, signature_b64,
+        owner_email: owner_email || OWNER_EMAIL
+      });
+      await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 20000 });
+      await page.waitForTimeout(500);
+      pdfBuffer = await page.pdf({
+        format: "A4",
+        printBackground: true,
+        margin: { top: "20mm", bottom: "20mm", left: "15mm", right: "15mm" }
+      });
+    }
 
     await browser.close();
     browser = null;
 
-    // 2. Upload to Supabase Storage
+    // Upload to Supabase Storage
     const filename = `${quote_id}-${signature_id}.pdf`;
     const { error: uploadError } = await supabase.storage
       .from(STORAGE_BUCKET)
@@ -100,22 +178,17 @@ app.post("/generate-pdf", requireSecret, async (req, res) => {
 
     if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
 
-    // 3. Get time-limited signed URL (7 days)
-    const { data: urlData, error: urlError } = await supabase.storage
+    // Get permanent public URL (bucket must be public)
+    const { data: { publicUrl: pdfUrl } } = supabase.storage
       .from(STORAGE_BUCKET)
-      .createSignedUrl(filename, SIGNED_URL_EXPIRY_SECS);
+      .getPublicUrl(filename);
 
-    if (urlError) throw new Error(`Signed URL failed: ${urlError.message}`);
-    const pdfUrl = urlData.signedUrl;
-
-    // 4. Update signature record with PDF URL
+    // Update signature record
     await supabase.from("quote_signatures").update({ pdf_url: pdfUrl }).eq("id", signature_id);
 
-    // 5. Send email via Resend — link only, no attachment
+    // Send email
     const effectiveOwnerEmail = owner_email || OWNER_EMAIL;
     const emailHtml = buildEmailHtml({ signer_name, quote_id, pdfUrl, signedAt: signedAtFormatted, ownerEmail: effectiveOwnerEmail });
-
-    // Build recipient list: signer + owner + viewers (deduplicated)
     const allRecipients = [...new Set([signer_email, effectiveOwnerEmail, ...viewer_emails].filter(Boolean))];
 
     await resend.emails.send({
@@ -130,11 +203,59 @@ app.post("/generate-pdf", requireSecret, async (req, res) => {
 
   } catch (err) {
     console.error(`[PDF] Error for ${quote_id}:`, err.message);
-    if (browser) await browser.close().catch(() => {});
+    if (browser) await browser.close().catch(() => { });
     res.status(500).json({ error: err.message });
   }
 });
+app.post("/preview-pdf", requireSecret, async (req, res) => {
+  const { html, quote_id } = req.body;
+  let browser;
+  try {
+    browser = await chromium.launch({
+      args: [
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--disable-gpu",
+        "--disable-extensions",
+        "--run-all-compositor-stages-before-draw",
+      ]
+    });
+    const page = await browser.newPage();
 
+    // Block analytics/tracking calls so networkidle resolves quickly
+    await page.route('**/*', (route) => {
+      const url = route.request().url();
+      if (url.includes('supabase.co/functions') || url.includes('track-event') || url.includes('analytics')) {
+        route.abort();
+      } else {
+        route.continue();
+      }
+    });
+
+    await page.setContent(html, { waitUntil: "domcontentloaded", timeout: 30000 });
+
+    // Wait for fonts and rendering to settle
+    await page.waitForTimeout(1500);
+
+    await page.evaluate(() => {
+      // Hide auth splash screen
+      const authScreen = document.getElementById('authScreen');
+      if (authScreen) authScreen.style.display = 'none';
+      // Hide interactive UI elements
+      document.querySelectorAll('#stickyBtn, .canvas-clear, button[onclick], #progressBar')
+        .forEach(e => e.style.display = 'none');
+    });
+
+    const pdf = await page.pdf({ format: "A4", printBackground: true });
+    await browser.close();
+    res.setHeader("Content-Type", "application/pdf");
+    res.send(pdf);
+  } catch (err) {
+    if (browser) await browser.close().catch(() => { });
+    res.status(500).json({ error: err.message });
+  }
+});
 // Health check
 app.get("/health", (req, res) => res.json({ ok: true }));
 

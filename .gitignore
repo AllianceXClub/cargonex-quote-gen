@@ -22,3 +22,6 @@ Thumbs.db
 
 # VSCode
 .vscode/
+
+# Generated quote files (contain client data — do not commit)
+quotes/quote-*.html

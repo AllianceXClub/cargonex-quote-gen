@@ -1519,11 +1519,46 @@
                 <input class="field-input ltr" type="tel" id="signerPhone" placeholder="050-000-0000"
                     autocomplete="tel" inputmode="tel" />
             </div>
+            <!-- Toggle סוג חתימה -->
             <div class="field-group">
-                <label class="field-label">חתימה *</label>
-                <canvas id="sigCanvas" width="640" height="220"></canvas>
-                <div class="field-error" id="errSig">נא לחתום בשטח החתימה</div>
-                <button class="canvas-clear" onclick="clearCanvas()">× נקה חתימה</button>
+                <label class="field-label">סוג חתימה</label>
+                <div style="display:flex;gap:8px;margin-bottom:16px;">
+                    <button type="button" id="btn-drawn" onclick="setSigType('drawn')"
+                        style="flex:1;padding:10px;border-radius:8px;border:1px solid #E74C3C;background:rgba(231,76,60,0.15);color:#fff;font-family:inherit;font-size:14px;cursor:pointer;">
+                        ✏️ חתימה + חותמת
+                    </button>
+                    <button type="button" id="btn-digital" onclick="setSigType('digital')"
+                        style="flex:1;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.15);background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.6);font-family:inherit;font-size:14px;cursor:pointer;">
+                        📎 העלאת קובץ המכיל את חותמת חברה + חתימת מורשה חתימה
+                    </button>
+                </div>
+            </div>
+
+            <!-- אפשרות 1: ציור חתימה + חותמת -->
+            <div id="sig-drawn-section">
+                <div class="field-group">
+                    <label class="field-label">חותמת חברה (אופציונלי)</label>
+                    <input type="file" id="stampFileInput" accept="image/*"
+                        style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:8px;"/>
+                    <img id="stampPreview" style="max-width:120px;display:none;margin-top:8px;border-radius:6px;"/>
+                </div>
+                <div class="field-group">
+                    <label class="field-label">חתימה *</label>
+                    <canvas id="sigCanvas" width="640" height="220"></canvas>
+                    <div class="field-error" id="errSig">נא לחתום בשטח החתימה</div>
+                    <button class="canvas-clear" onclick="clearCanvas()">× נקה חתימה</button>
+                </div>
+            </div>
+
+            <!-- אפשרות 2: תמונה משולבת -->
+            <div id="sig-digital-section" style="display:none;">
+                <div class="field-group">
+                    <label class="field-label">העלה תמונת חתימה + חותמת *</label>
+                    <input type="file" id="digitalSigInput" accept="image/*"
+                        style="color:rgba(255,255,255,0.6);font-size:14px;margin-bottom:8px;"/>
+                    <img id="digitalSigPreview" style="max-width:280px;display:none;margin-top:8px;border-radius:6px;"/>
+                    <div class="field-error" id="errDigital">נא להעלות תמונת חתימה</div>
+                </div>
             </div>
             <label class="agree-label">
                 <input type="checkbox" id="agreeCheck" />
@@ -1873,6 +1908,47 @@
         }
 
         // ===== SUBMIT (async — Supabase) =====
+        // ===== SIGNATURE TYPE =====
+        let currentSigType = 'drawn';
+        let stampB64 = '';
+        let digitalSigB64 = '';
+
+        function setSigType(type) {
+            currentSigType = type;
+            document.getElementById('sig-drawn-section').style.display = type === 'drawn' ? 'block' : 'none';
+            document.getElementById('sig-digital-section').style.display = type === 'digital' ? 'block' : 'none';
+            const btnDrawn = document.getElementById('btn-drawn');
+            const btnDigital = document.getElementById('btn-digital');
+            btnDrawn.style.border = type === 'drawn' ? '1px solid #E74C3C' : '1px solid rgba(255,255,255,0.15)';
+            btnDrawn.style.background = type === 'drawn' ? 'rgba(231,76,60,0.15)' : 'rgba(255,255,255,0.05)';
+            btnDrawn.style.color = type === 'drawn' ? '#fff' : 'rgba(255,255,255,0.6)';
+            btnDigital.style.border = type === 'digital' ? '1px solid #E74C3C' : '1px solid rgba(255,255,255,0.15)';
+            btnDigital.style.background = type === 'digital' ? 'rgba(231,76,60,0.15)' : 'rgba(255,255,255,0.05)';
+            btnDigital.style.color = type === 'digital' ? '#fff' : 'rgba(255,255,255,0.6)';
+        }
+
+        document.getElementById('stampFileInput').addEventListener('change', function(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function() {
+                stampB64 = reader.result;
+                const prev = document.getElementById('stampPreview');
+                prev.src = stampB64; prev.style.display = 'block';
+            };
+            reader.readAsDataURL(f);
+        });
+
+        document.getElementById('digitalSigInput').addEventListener('change', function(e) {
+            const f = e.target.files[0]; if (!f) return;
+            const reader = new FileReader();
+            reader.onload = function() {
+                digitalSigB64 = reader.result;
+                const prev = document.getElementById('digitalSigPreview');
+                prev.src = digitalSigB64; prev.style.display = 'block';
+            };
+            reader.readAsDataURL(f);
+        });
+
         async function submitSignature() {
             const name = document.getElementById('signerName').value.trim();
             const email = document.getElementById('signerEmail').value.trim();
@@ -1881,18 +1957,20 @@
             let valid = true;
             if (!name) { showErr('errName'); valid = false; }
             if (!email || !email.includes('@')) { showErr('errEmail'); valid = false; }
-            if (!hasSig) { showErr('errSig'); valid = false; }
+            if (currentSigType === 'drawn' && !hasSig) { showErr('errSig'); valid = false; }
+            if (currentSigType === 'digital' && !digitalSigB64) { showErr('errDigital'); valid = false; }
             if (!agree) { showErr('errAgree'); valid = false; }
             if (!valid) return;
             const btn = document.getElementById('submitBtn');
             btn.disabled = true; btn.textContent = '⏳ שולח...';
-            const sigBase64 = canvas.toDataURL('image/png');
+            const sigBase64 = currentSigType === 'drawn' ? canvas.toDataURL('image/png') : digitalSigB64;
+            const stampBase64 = currentSigType === 'drawn' ? (stampB64 || null) : null;
             sendEvent('quote_signed');
             try {
                 const res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/sign-quote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signature_b64: sigBase64, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
+                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signature_b64: sigBase64, stamp_image_b64: stampBase64, signature_type: currentSigType, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
                 });
                 if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'שגיאת שרת ' + res.status); }
                 const ts = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });

@@ -1,6 +1,5 @@
 name = "cargonex-quotes-git"
 compatibility_date = "2024-09-23"
-account_id = "584833359c809320317e6074a73af8ad"
 main = "worker.js"
 
 [assets]

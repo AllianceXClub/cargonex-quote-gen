@@ -608,8 +608,7 @@
         <div class="grid2">
             <div class="field">
                 <label>אימייל שולח</label>
-                <input type="email" id="senderEmail" value=""
-                    style="direction:ltr; text-align:right;" />
+                <input type="email" id="senderEmail" value="" style="direction:ltr; text-align:right;" />
             </div>
             <div class="field">
                 <label>טלפון שולח</label>
@@ -1332,6 +1331,7 @@
 
         // ===== PREVIEW MODAL =====
         var _pendingDownload = null;
+        var _previewStampB64 = "";
 
         function openPreview(html, filename, quoteId, signerName, signerEmail, viewers, baseUrl, ownerEmail) {
             _pendingDownload = { html: html, filename: filename, quoteId: quoteId, signerName: signerName, signerEmail: signerEmail, viewers: viewers, baseUrl: baseUrl, ownerEmail: ownerEmail || '' };
@@ -1339,13 +1339,37 @@
             var frame = document.getElementById('previewFrame');
             var label = document.getElementById('previewQuoteLabel');
             if (label) label.innerHTML = '<strong>' + quoteId + '<\/strong> — ' + (signerName || signerEmail || '');
-            frame.srcdoc = html;
+            var previewHtml = html.replace('<head>', '<head><script>var _f=window.fetch;window.fetch=function(u,o){if(typeof u==="string"&&u.includes("track-event"))return Promise.resolve(new Response("{}",{status:200}));return _f.apply(this,arguments)};<\/script>');
+            frame.srcdoc = previewHtml;
             modal.classList.add('open');
         }
+
+        // Stamp upload listener for preview modal
+        document.addEventListener('DOMContentLoaded', function () {
+            var stampInput = document.getElementById('previewStampInput');
+            if (stampInput) {
+                stampInput.addEventListener('change', function (e) {
+                    var file = e.target.files[0];
+                    if (!file) return;
+                    var reader = new FileReader();
+                    reader.onload = function (ev) {
+                        _previewStampB64 = ev.target.result;
+                        var thumb = document.getElementById('previewStampThumb');
+                        if (thumb) { thumb.src = _previewStampB64; thumb.style.display = 'inline-block'; }
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+        });
 
         function closePreview() {
             document.getElementById('previewModal').classList.remove('open');
             _pendingDownload = null;
+            _previewStampB64 = "";
+            var thumb = document.getElementById('previewStampThumb');
+            if (thumb) { thumb.src = ""; thumb.style.display = "none"; }
+            var stampInput = document.getElementById('previewStampInput');
+            if (stampInput) stampInput.value = "";
         }
 
         async function downloadPreviewPDF() {
@@ -1357,7 +1381,7 @@
                 var res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/pdf-proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: _pendingDownload.html, quote_id: _pendingDownload.quoteId })
+                    body: JSON.stringify({ html: _pendingDownload.html, quote_id: _pendingDownload.quoteId, stamp_b64: _previewStampB64 || "" })
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 var blob = await res.blob();
@@ -1397,8 +1421,25 @@
                 });
                 if (!res.ok) { var e = await res.json().catch(function () { return {}; }); throw new Error(e.error || 'HTTP ' + res.status); }
                 var data = await res.json();
-                closePreview();
-                alert('✅ ההצעה נשלחה!\n\nקישור:\n' + data.url);
+                var quoteUrl = data.url || ((p.baseUrl || 'https://quotes.cargonex.io') + '/' + p.filename);
+                var waMsg = 'שלום ' + (p.signerName || '') + ' 👋\n\nהצעת המחיר שלנו מוכנה עבורך 🚀\n\nקריאה + חתימה ישירות מהנייד:\n👇 ' + quoteUrl;
+                var tgMsg = 'שלום ' + (p.signerName || '') + ' 👋\n\nהצעת המחיר שלנו מוכנה עבורך.\n\n📋 ' + quoteUrl;
+                var successHtml =
+                    '<div style="padding:32px;text-align:center;font-family:Heebo,sans-serif;color:#fff;direction:rtl;">' +
+                    '<div style="font-size:48px;margin-bottom:16px;">✅</div>' +
+                    '<h2 style="color:#4cd97b;margin:0 0 8px;">ההצעה נשלחה בהצלחה!</h2>' +
+                    '<p style="color:rgba(255,255,255,0.6);margin:0 0 24px;">מייל נשלח ל-' + p.signerEmail + '</p>' +
+                    '<div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;margin-bottom:24px;word-break:break-all;font-size:13px;color:rgba(255,255,255,0.7);">' + quoteUrl + '</div>' +
+                    '<div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">' +
+                    '<button onclick="navigator.clipboard.writeText(\'' + quoteUrl + '\').then(function(){this.textContent=\'✓ הועתק\';}.bind(this))" style="background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:14px;">העתק קישור</button>' +
+                    '<a href="https://wa.me/?text=' + encodeURIComponent(waMsg) + '" target="_blank" style="background:#25D366;border:none;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">WhatsApp</a>' +
+                    '<a href="https://t.me/share/url?url=' + encodeURIComponent(quoteUrl) + '&text=' + encodeURIComponent(tgMsg) + '" target="_blank" style="background:#229ED9;border:none;color:#fff;padding:10px 20px;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:14px;text-decoration:none;display:inline-flex;align-items:center;gap:6px;">Telegram</a>' +
+                    '</div>' +
+                    '<button onclick="document.getElementById(\'previewModal\').classList.remove(\'open\');document.getElementById(\'previewFrame\').srcdoc=\'\';" style="margin-top:24px;background:transparent;border:1px solid rgba(255,255,255,0.2);color:rgba(255,255,255,0.5);padding:8px 20px;border-radius:8px;cursor:pointer;font-family:Heebo,sans-serif;font-size:13px;">סגור</button>' +
+                    '</div>';
+                document.getElementById('previewFrame').srcdoc = successHtml;
+                btn.disabled = false;
+                btn.style.display = 'none';
             } catch (err) {
                 alert('שגיאה בשליחה: ' + err.message);
                 btn.disabled = false;
@@ -1412,8 +1453,15 @@
         <div id="previewTopBar">
             <div class="preview-label" id="previewQuoteLabel">תצוגה מקדימית</div>
             <div style="display:flex;gap:10px;align-items:center;">
-                <button id="pdfPreviewBtn" class="preview-action-btn back" onclick="downloadPreviewPDF()">📄 הורד PDF</button>
-                <button id="confirmSendBtn" class="preview-action-btn confirm" onclick="confirmAndSend()">✅ אשר ושלח ללקוח</button>
+                <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:rgba(255,255,255,0.6);cursor:pointer;">
+                    <span>חותמת CargoNex:</span>
+                    <input type="file" id="previewStampInput" accept="image/*" style="max-width:140px;font-size:12px;color:rgba(255,255,255,0.7);" />
+                    <img id="previewStampThumb" style="height:28px;display:none;border-radius:4px;border:1px solid rgba(255,255,255,0.2);" />
+                </label>
+                <button id="pdfPreviewBtn" class="preview-action-btn back" onclick="downloadPreviewPDF()">📄 הורד
+                    PDF</button>
+                <button id="confirmSendBtn" class="preview-action-btn confirm" onclick="confirmAndSend()">✅ אשר ושלח
+                    ללקוח</button>
                 <button class="preview-action-btn back" onclick="closePreview()">← חזור לעריכה</button>
             </div>
         </div>
@@ -1421,5 +1469,5 @@
     </div>
 
 </body>
+
 </html>
-      

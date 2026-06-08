@@ -10,6 +10,9 @@ RUN npm install --omit=dev
 # Copy app
 COPY index.js ./
 
+# Copy embedded assets (logo for PDF header)
+COPY assets/ ./assets/
+
 # Cloud Run expects port 8080
 EXPOSE 8080
 ENV PORT=8080

@@ -22,7 +22,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json();
-    const { quote_id, signer_name, signer_email, signer_phone, signature_b64, stamp_image_b64, signature_type = 'drawn', client_name, session_id, setup_fee, monthly_fee, owner_email, token } = body;
+    const { quote_id, signer_name, signer_email, signer_phone, signature_b64, stamp_image_b64, signature_type = 'drawn', client_name, session_id, setup_fee, monthly_fee, owner_email, sender_name = "", signer_role = "", token } = body;
 
     // Basic validation
     if (!quote_id || !signer_name || !signer_email || !signature_b64) {
@@ -78,10 +78,10 @@ serve(async (req) => {
           .from("signature-stamps")
           .upload(stampFilename, stampBytes, { contentType: "image/png" });
         if (!stampErr) {
-          const { data: stampUrlData } = await supabase.storage
+          const { data: stampUrlData } = supabase.storage
             .from("signature-stamps")
-            .createSignedUrl(stampFilename, 60 * 60 * 24 * 365 * 7);
-          stampUrl = stampUrlData?.signedUrl || null;
+            .getPublicUrl(stampFilename);
+          stampUrl = stampUrlData?.publicUrl || null;
         }
       } catch (e) {
         console.error("Stamp upload failed:", e);
@@ -104,6 +104,7 @@ serve(async (req) => {
       user_agent: req.headers.get("user-agent") || null,
       signed_at: signedAt,
       signature_type,
+      signer_role: signer_role || null,
       stamp_image_url: stampUrl,
       pdf_url: null,  // will be updated by pdf-generator after upload
     });
@@ -156,6 +157,9 @@ serve(async (req) => {
         viewer_emails: viewerEmails,
         quote_html,
         stamp_image_url: stampUrl,
+        signer_role,
+        sender_name,
+        signature_type,
       }),
     }).then(async (r) => {
       if (!r.ok) {

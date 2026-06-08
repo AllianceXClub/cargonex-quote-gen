@@ -12,7 +12,7 @@ serve(async (req) => {
     if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
     try {
-        const { html, quote_id } = await req.json();
+        const { html, quote_id, stamp_b64 = "" } = await req.json();
         if (!html) return new Response(JSON.stringify({ error: "Missing html" }),
             { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
@@ -23,7 +23,7 @@ serve(async (req) => {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${PDF_GENERATOR_SECRET}`,
             },
-            body: JSON.stringify({ html, quote_id }),
+            body: JSON.stringify({ html, quote_id, stamp_b64 }),
         });
 
         if (!r.ok) {

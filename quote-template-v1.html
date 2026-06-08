@@ -1519,6 +1519,12 @@
                 <input class="field-input ltr" type="tel" id="signerPhone" placeholder="050-000-0000"
                     autocomplete="tel" inputmode="tel" />
             </div>
+            <div class="field-group">
+                <label class="field-label" for="signerRole">תפקיד מורשה החתימה *</label>
+                <input class="field-input" type="text" id="signerRole" placeholder="לדוגמה: מנכ&quot;ל, סמנכ&quot;ל כספים"
+                    autocomplete="organization-title" />
+                <div class="field-error" id="errRole">נא להזין תפקיד</div>
+            </div>
             <!-- Toggle סוג חתימה -->
             <div class="field-group">
                 <label class="field-label">סוג חתימה</label>
@@ -1953,13 +1959,15 @@
             const name = document.getElementById('signerName').value.trim();
             const email = document.getElementById('signerEmail').value.trim();
             const phone = document.getElementById('signerPhone').value.trim();
+            const role = document.getElementById('signerRole').value.trim();
             const agree = document.getElementById('agreeCheck').checked;
             let valid = true;
-            if (!name) { showErr('errName'); valid = false; }
-            if (!email || !email.includes('@')) { showErr('errEmail'); valid = false; }
-            if (currentSigType === 'drawn' && !hasSig) { showErr('errSig'); valid = false; }
-            if (currentSigType === 'digital' && !digitalSigB64) { showErr('errDigital'); valid = false; }
-            if (!agree) { showErr('errAgree'); valid = false; }
+            if (!name) { showErr('errName'); valid = false; } else { hideErr('errName'); }
+            if (!email || !email.includes('@')) { showErr('errEmail'); valid = false; } else { hideErr('errEmail'); }
+            if (!role) { showErr('errRole'); valid = false; } else { hideErr('errRole'); }
+            if (currentSigType === 'drawn' && !hasSig) { showErr('errSig'); valid = false; } else { hideErr('errSig'); }
+            if (currentSigType === 'digital' && !digitalSigB64) { showErr('errDigital'); valid = false; } else if (currentSigType === 'digital') { hideErr('errDigital'); }
+            if (!agree) { showErr('errAgree'); valid = false; } else { hideErr('errAgree'); }
             if (!valid) return;
             const btn = document.getElementById('submitBtn');
             btn.disabled = true; btn.textContent = '⏳ שולח...';
@@ -1970,7 +1978,7 @@
                 const res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/sign-quote', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
-                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signature_b64: sigBase64, stamp_image_b64: stampBase64, signature_type: currentSigType, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
+                    body: JSON.stringify({ quote_id: QUOTE_ID, signer_name: name, signer_email: email, signer_phone: phone, signer_role: role, signature_b64: sigBase64, stamp_image_b64: stampBase64, signature_type: currentSigType, client_name: '{{CLIENT_COMPANY}}', setup_fee: '{{SETUP_FEE_DISPLAY}}', monthly_fee: '{{MONTHLY_FEE_DISPLAY}}', owner_email: '{{OWNER_EMAIL}}', sender_name: '{{OWNER_NAME}}', token: new URLSearchParams(window.location.search).get('t'), session_id: SESSION_ID })
                 });
                 if (!res.ok) { const e = await res.json().catch(() => ({})); throw new Error(e.error || 'שגיאת שרת ' + res.status); }
                 const ts = new Date().toLocaleString('he-IL', { timeZone: 'Asia/Jerusalem' });

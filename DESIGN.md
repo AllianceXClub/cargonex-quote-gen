@@ -117,3 +117,61 @@ When rendering charts or data visualizations (e.g., `DATA_CHART` type using Rech
 - **Data Colors:** STRICTLY use `#333333` (Dark Gray) for "Old/Manual/Competitor" metrics, and Neon Red `#E74C3C` for "CargoNex/Optimized" metrics to create a stark, immediate contrast.
 - **Clean UI (No Clutter):** Disable all background grids. Use `axisLine={false}` and `tickLine={false}` on axes.
 - **Tooltips:** Tooltip cursors must be `transparent` or subtle `rgba(255,255,255,0.05)`. Backgrounds must be `#111111` with no bright borders.
+
+---
+
+## 7. Hybrid Premium — Quote Delivery System (PDF + Web Quote Page)
+
+**Approved:** 2026-06-15. This is the design language for all customer-facing quote outputs — the generated PDF (`buildPrintHtml()`) and the web quote page (`quote-template-v1.html`).
+
+### Design Philosophy
+
+White-background, high-contrast, conversion-optimized. Borrows visual weight from fintech/legal SaaS (Stripe, Notion, DocuSign). Feels like a €10M product. No dark mode, no glass effects in this context.
+
+### Color Tokens — Quote System
+
+| Token | Value | Usage |
+|---|---|---|
+| `--red` | `#C0392B` | Top bar, sec-labels, accent borders, totals, expiry |
+| `--red-light` | `rgba(180,30,20,0.055)` | Watermark tint |
+| `--green` | `#1a7a45` | Signed badge, monthly badge, sig-box-signed text |
+| `--green-bg` | `#F0FBF4` | Signed badge bg, monthly badge bg, sig-box-signed bg |
+| `--green-border` | `#B2E4C7` | Signed badge border, monthly badge border, sig-box-signed border |
+| `--text-primary` | `#111` | Headings, names, amounts |
+| `--text-secondary` | `#555–#666` | Body text, descriptions |
+| `--text-muted` | `#aaa–#bbb` | Labels, sub-text, footer |
+| `--border` | `#e8e8e8` | All dividers, card borders |
+| `--surface` | `#f8f8f8` | Section backgrounds, card fills |
+
+### Structural Rules — PDF
+
+- **Top bar:** `<div class="pdf-top-bar">` — 3px solid `#C0392B`, full-width, first element in body
+- **Watermark:** Fixed, rotated −35°, font-size 96px, color `rgba(180,30,20,0.055)`, z-index 0
+- **Header:** Logo left (height 56px) + `CARGONEX` text mark above it, quote ID right (26px bold)
+- **Client block:** 4-column grid (לקוח | חותם·תפקיד | הנפקה | תוקף), separated by 0.5px borders
+- **Section labels (`sec-label`):** 9px, uppercase, `#C0392B`, letter-spacing 0.08em
+- **Pain rows:** No icon box — right border 3px `#C0392B` (primary) or `#ddd` (secondary)
+- **Benefit cards:** 2-column grid (`ben-grid`), `#f8f8f8` background, 8px radius
+- **Price total:** Inside `.price-table` container, `#f8f8f8` background, amount in `#C0392B`
+- **Sig block (client, signed):** `sig-box-signed` class — `#F8FEF9` bg, `#B2E4C7` border, green label
+- **Sig block (CargoNex):** Plain `sig-box` — blank until CS (Counter-Signature) flow is built
+- **Next steps:** Flex row with ✅ icon + text block (title + body)
+- **Footer:** Centered, 9px, `#bbb`, legal line + email + signature ID
+
+### Phase Status
+
+| Surface | Status | Notes |
+|---|---|---|
+| PDF (`buildPrintHtml()`) | ✅ Done (2026-06-15) | Hybrid Premium CSS + HTML fully applied |
+| Web (`quote-template-v1.html`) | 🔜 Phase 2 | CSS overhaul only — all JS must remain untouched |
+
+### Web Quote Page — Phase 2 Rules
+
+When overhauling `quote-template-v1.html`:
+- Replace dark palette (`#080808`, glass cards) with white + Hybrid Premium tokens
+- Keep ALL JS intact — do not rename or remove any element IDs or class names used by JS
+- JS hooks to preserve: `sigCanvas`, `signerName`, `signerEmail`, `signerPhone`, `signerRole`, `agreeCheck`, `submitBtn`, `.pain-item`, `.pain-title`, `.pain-desc`, `.benefit-card`, `.benefit-title`, `.benefit-desc`, `.term-item`, `.hero-date-value`
+- Replace glass cards with clean white cards (`border: 0.5px solid #e8e8e8; border-radius: 12px`)
+- Pain items: add `border-right: 3px solid #C0392B` accent
+- Benefit cards: 2-col grid matching PDF style
+- Auth screen, countdown, celebration screen: keep layout, update colors only

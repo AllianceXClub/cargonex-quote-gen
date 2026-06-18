@@ -1,6 +1,7 @@
 # Wrangler cache
 .wrangler/
 quotes/.wrangler/
+pdf-generator/.wrangler/
 
 # Environment files
 .env
@@ -23,5 +24,4 @@ Thumbs.db
 # VSCode
 .vscode/
 
-# Generated quote files (contain client data — do not commit)
-quotes/quote-*.html
+# Generated quote files (contain client data — do not co

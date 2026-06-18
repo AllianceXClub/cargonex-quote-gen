@@ -361,16 +361,16 @@ function buildPrintHtml({
   const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const isSigned = mode === "signed";
 
-  const painRows = pains.map(p =>
-    `<div class="pain-row"><div class="pain-icon"></div><div>` +
+  const painRows = pains.map((p, i) =>
+    `<div class="pain-row${i > 0 ? ' pain-row-secondary' : ''}">` +
     `<div class="pain-title">${esc(p.title)}</div>` +
-    `<div class="pain-desc">${esc(p.desc)}</div></div></div>`
+    `<div class="pain-desc">${esc(p.desc)}</div></div>`
   ).join("");
 
   const benCards = benefits.map(b =>
-    `<div class="pain-row"><div class="pain-icon ben-icon"></div><div>` +
-    `<div class="pain-title">${esc(b.title)}</div>` +
-    `<div class="pain-desc">${esc(b.desc)}</div></div></div>`
+    `<div class="ben-card">` +
+    `<div class="ben-title">${esc(b.title)}</div>` +
+    `<div class="ben-desc">${esc(b.desc)}</div></div>`
   ).join("");
 
   const termRows = terms.map((t, i) =>
@@ -404,87 +404,99 @@ function buildPrintHtml({
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(231,76,60,0.07);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
-.pdf-header{padding:20px 28px 16px;border-bottom:3px solid #E74C3C;display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;}
-.pdf-logo{font-size:22px;font-weight:700;color:#E74C3C;}
-.signed-badge{display:inline-flex;align-items:center;gap:6px;background:#e8f8ef;border:1px solid #b2e4c7;border-radius:999px;padding:3px 12px;font-size:11px;font-weight:600;color:#1a7a45;margin-top:6px;}
-.pdf-meta{text-align:left;font-size:11px;color:#888;}
-.pdf-meta strong{display:block;font-size:15px;color:#111;font-weight:700;}
-.client-block{padding:14px 28px;background:#fafafa;border-bottom:0.5px solid #eee;display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;position:relative;z-index:1;}
-.meta-item label{font-size:9px;color:#aaa;display:block;margin-bottom:2px;text-transform:uppercase;letter-spacing:0.04em;}
-.meta-item span{font-size:12px;font-weight:600;color:#111;}
-.meta-item span.expiry{color:#E74C3C;}
-.section{padding:18px 28px;border-bottom:0.5px solid #eee;page-break-inside:avoid;position:relative;z-index:1;}
-.sec-label{font-size:9px;color:#E74C3C;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px;}
-.sec-title{font-size:17px;font-weight:700;color:#111;margin-bottom:14px;}
-.pain-row{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;border:0.5px solid #eee;border-radius:8px;margin-bottom:6px;page-break-inside:avoid;}
-.pain-icon{width:28px;height:28px;min-width:28px;background:#fde8e6;border-radius:6px;}
-.ben-icon{background:#e8f8ef;}
-.pain-title{font-size:12px;font-weight:600;color:#111;margin-bottom:2px;}
-.pain-desc{font-size:11px;color:#777;line-height:1.5;}
-.price-table{border:0.5px solid #eee;border-radius:8px;overflow:hidden;}
-.price-header{display:grid;grid-template-columns:2fr 1fr 1fr;background:#fde8e6;padding:7px 12px;}
-.price-header span{font-size:10px;font-weight:600;color:#E74C3C;}
-.price-row{display:grid;grid-template-columns:2fr 1fr 1fr;padding:10px 12px;border-top:0.5px solid #eee;align-items:center;}
-.price-name{font-size:12px;font-weight:600;color:#111;}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(180,30,20,0.055);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
+.pdf-top-bar{height:3px;background:#C0392B;}
+.pdf-header{padding:22px 28px 18px;border-bottom:0.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;}
+.pdf-logo-mark{font-size:10px;font-weight:700;color:#C0392B;letter-spacing:0.1em;margin-bottom:7px;}
+.signed-badge{display:inline-flex;align-items:center;gap:4px;background:#F0FBF4;border:0.5px solid #B2E4C7;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;color:#1a7a45;}
+.pdf-meta{text-align:left;}
+.pdf-meta-id{font-size:26px;font-weight:700;color:#111;line-height:1;letter-spacing:-0.02em;}
+.pdf-meta-label{font-size:10px;color:#aaa;margin-top:3px;}
+.client-block{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:0.5px solid #e8e8e8;position:relative;z-index:1;}
+.meta-item{padding:11px 16px;border-right:0.5px solid #e8e8e8;}
+.meta-item:last-child{border-right:none;}
+.meta-item label{font-size:9px;color:#aaa;display:block;margin-bottom:3px;letter-spacing:0.04em;}
+.meta-item span{font-size:12px;font-weight:600;color:#111;display:block;}
+.meta-item span.expiry{color:#C0392B;}
+.section{padding:18px 28px;border-bottom:0.5px solid #e8e8e8;page-break-inside:avoid;position:relative;z-index:1;}
+.sec-label{font-size:9px;color:#C0392B;letter-spacing:0.08em;margin-bottom:10px;font-weight:700;}
+.sec-title{font-size:17px;font-weight:700;color:#111;margin-bottom:16px;}
+.pain-row{border-right:3px solid #C0392B;padding-right:12px;margin-bottom:10px;page-break-inside:avoid;}
+.pain-row-secondary{border-right-color:#ddd;}
+.pain-title{font-size:13px;font-weight:700;color:#111;margin-bottom:3px;}
+.pain-desc{font-size:11px;color:#666;line-height:1.6;}
+.ben-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.ben-card{background:#f8f8f8;border-radius:8px;padding:12px 14px;page-break-inside:avoid;}
+.ben-title{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;}
+.ben-desc{font-size:11px;color:#666;line-height:1.5;}
+.price-table{border:0.5px solid #e8e8e8;border-radius:8px;overflow:hidden;}
+.price-header{display:grid;grid-template-columns:2fr 1fr 1fr;background:#f8f8f8;padding:8px 14px;}
+.price-header span{font-size:10px;font-weight:700;color:#aaa;}
+.price-row{display:grid;grid-template-columns:2fr 1fr 1fr;padding:12px 14px;border-top:0.5px solid #e8e8e8;align-items:center;}
+.price-name{font-size:13px;font-weight:700;color:#111;}
 .price-sub{font-size:10px;color:#aaa;}
-.price-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:600;text-align:center;}
+.price-badge{display:inline-block;padding:2px 9px;border-radius:999px;font-size:10px;font-weight:700;text-align:center;}
 .badge-once{background:#f3f3f3;color:#666;}
-.badge-monthly{background:#fde8e6;color:#E74C3C;border:1px solid rgba(231,76,60,0.3);}
-.price-amount{font-size:15px;font-weight:700;color:#111;text-align:left;}
+.badge-monthly{background:#F0FBF4;color:#1a7a45;border:0.5px solid #B2E4C7;}
+.price-amount{font-size:14px;font-weight:700;color:#111;text-align:left;}
 .price-vat{font-size:9px;color:#aaa;text-align:left;}
-.price-total{display:flex;justify-content:space-between;align-items:center;padding:12px;background:#fde8e6;border-radius:8px;margin-top:8px;}
-.total-label{font-size:11px;color:#888;}
-.total-sub{font-size:10px;color:#bbb;}
-.total-amount{font-size:22px;font-weight:700;color:#E74C3C;text-align:left;}
+.price-total{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;background:#f8f8f8;border-top:0.5px solid #e8e8e8;}
+.total-label{font-size:12px;color:#555;font-weight:600;}
+.total-sub{font-size:10px;color:#aaa;}
+.total-amount{font-size:22px;font-weight:700;color:#C0392B;text-align:left;}
 .total-vat{font-size:10px;color:#aaa;text-align:left;}
-.term-row{padding:9px 12px;border:0.5px solid #eee;border-radius:8px;margin-bottom:6px;page-break-inside:avoid;}
-.term-row.highlight{border-color:#E74C3C;}
-.term-title{font-size:12px;font-weight:600;color:#111;margin-bottom:3px;}
-.term-text{font-size:11px;color:#777;line-height:1.6;}
-.vat-note{color:#E74C3C;font-weight:600;}
+.term-row{padding:10px 14px;border:0.5px solid #e8e8e8;border-radius:8px;margin-bottom:6px;page-break-inside:avoid;}
+.term-title{font-size:12px;font-weight:700;color:#111;margin-bottom:4px;}
+.term-text{font-size:11px;color:#666;line-height:1.6;}
+.vat-note{color:#C0392B;font-weight:700;}
 .sig-section{padding:18px 28px;position:relative;z-index:1;}
-.sig-cols{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.sig-box{border:1px solid #eee;border-radius:10px;padding:14px;text-align:center;page-break-inside:avoid;}
-.sig-box-label{font-size:10px;color:#aaa;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;}
-.sig-img{max-width:200px;max-height:80px;display:block;margin:0 auto 8px;border:1px solid #ddd;border-radius:4px;background:#fff;padding:4px;}
-.sig-img-drawn{filter:invert(1);}
+.sig-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.sig-box{border:0.5px solid #e8e8e8;border-radius:10px;padding:14px;text-align:center;page-break-inside:avoid;}
+.sig-box-signed{border-color:#B2E4C7;background:#F8FEF9;}
+.sig-box-label{font-size:9px;color:#aaa;font-weight:700;margin-bottom:10px;letter-spacing:0.07em;}
+.sig-box-signed .sig-box-label{color:#1a7a45;}
+.sig-img{max-width:200px;max-height:80px;display:block;margin:0 auto 8px;border-radius:4px;background:#fff;padding:4px;}
+.sig-img-drawn{filter:none;}
 .sig-img-digital{filter:none;}
-.sig-name{font-size:13px;font-weight:600;color:#111;}
-.sig-role{font-size:11px;color:#888;margin-top:2px;}
-.sig-date{font-size:11px;color:#888;margin-top:2px;}
+.sig-name{font-size:13px;font-weight:700;color:#111;}
+.sig-role{font-size:11px;color:#777;margin-top:2px;}
+.sig-date{font-size:11px;color:#777;margin-top:2px;}
 .sig-phone{font-size:10px;color:#aaa;margin-top:2px;direction:ltr;display:block;}
-.sig-id{font-size:9px;color:#bbb;margin-top:5px;direction:ltr;display:block;}
-.next-steps{padding:14px 28px;background:#fafafa;border-top:1px solid #eee;page-break-inside:avoid;position:relative;z-index:1;}
-.pdf-footer{padding:8px 28px;background:#fafafa;border-top:0.5px solid #eee;font-size:9px;color:#bbb;text-align:center;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;direction:rtl;position:relative;z-index:1;}
+.sig-id{font-size:9px;color:#ccc;margin-top:5px;direction:ltr;display:block;}
+.next-steps{padding:14px 28px;background:#f8f8f8;border-top:0.5px solid #e8e8e8;page-break-inside:avoid;position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;}
+.next-steps-icon{font-size:15px;color:#1a7a45;flex-shrink:0;margin-top:1px;}
+.next-steps-body{font-size:12px;color:#555;line-height:1.7;}
+.next-steps-title{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;}
+.pdf-footer{padding:8px 28px;border-top:0.5px solid #e8e8e8;font-size:9px;color:#bbb;text-align:center;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;direction:rtl;position:relative;z-index:1;}
 </style>
 </head>
 <body>
+<div class="pdf-top-bar"></div>
 ${isSigned ? `<div class="watermark">נחתם</div>` : ""}
 <div class="pdf-header">
   <div>
+    <div class="pdf-logo-mark">CARGONEX</div>
     ${LOGO_BASE64
-      ? `<img src="${LOGO_BASE64}" alt="CargoNex" style="height:44px;object-fit:contain;display:block;"/>`
-      : `<div class="pdf-logo">CargoNex</div>`}
+      ? `<img class="pdf-logo-img" src="${LOGO_BASE64}" alt="CargoNex"/>`
+      : `<div style="font-size:22px;font-weight:700;color:#C0392B;">CargoNex</div>`}
     ${isSigned ? `<div class="signed-badge">✓ נחתם</div>` : ""}
   </div>
-  <div class="pdf-meta"><strong>${esc(quote_id)}</strong>מספר הצעה</div>
+  <div class="pdf-meta">
+    <div class="pdf-meta-id">${esc(quote_id)}</div>
+    <div class="pdf-meta-label">מספר הצעה</div>
+  </div>
 </div>
 <div class="client-block">
   <div class="meta-item"><label>לקוח</label><span>${esc(client_name)}</span></div>
-  <div class="meta-item"><label>חותם</label><span>${esc(signer_name) || "—"}</span></div>
-  <div class="meta-item"><label>נחתם ב</label><span>${esc(signed_at) || "—"}</span></div>
+  <div class="meta-item"><label>חותם · תפקיד</label><span>${esc(signer_name) || "—"}${signer_role ? ` · ${esc(signer_role)}` : ""}</span></div>
   <div class="meta-item"><label>תאריך הנפקה</label><span>${esc(issueDate)}</span></div>
   <div class="meta-item"><label>תוקף עד</label><span class="expiry">${esc(expiryDate)}</span></div>
-  <div class="meta-item"><label>תפקיד</label><span>${esc(signer_role) || "—"}</span></div>
-  <div class="meta-item"><label>טלפון</label><span>${esc(signer_phone) || "—"}</span></div>
-  <div class="meta-item"><label>אימייל</label><span>${esc(signer_email) || "—"}</span></div>
 </div>
 ${pains.length
   ? `<div class="section"><div class="sec-label">האתגר שלכם</div><div class="sec-title">מה זיהינו אצלכם</div>${painRows}</div>`
   : `<div class="section"><div class="sec-label">האתגר שלכם</div><div class="sec-title">מה זיהינו אצלכם</div><p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו נקודות כאב.</p></div>`}
 ${benefits.length
-  ? `<div class="section"><div class="sec-label">הפתרון שלנו</div><div class="sec-title">מה אנחנו בונים לכם</div>${benCards}</div>`
+  ? `<div class="section"><div class="sec-label">הפתרון שלנו</div><div class="sec-title">מה אנחנו בונים לכם</div><div class="ben-grid">${benCards}</div></div>`
   : `<div class="section"><div class="sec-label">הפתרון שלנו</div><div class="sec-title">מה אנחנו בונים לכם</div><p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו תועלות.</p></div>`}
 <div class="section">
   <div class="sec-label">ההצעה הכספית</div>
@@ -501,23 +513,23 @@ ${benefits.length
       <div style="text-align:center;"><span class="price-badge badge-monthly">חודשי</span></div>
       <div><div class="price-amount">${esc(monthly_fee)}</div><div class="price-vat">לחודש + מע"מ</div></div>
     </div>
-  </div>
-  <div class="price-total">
-    <div><div class="total-label">סה"כ התחייבות שנתית</div><div class="total-sub">הטמעה + 12 חודשי רישוי</div></div>
-    <div><div class="total-amount">${calcTotal(setup_fee, monthly_fee)}</div><div class="total-vat">לפני מע"מ</div></div>
+    <div class="price-total">
+      <div><div class="total-label">סה"כ התחייבות שנתית</div><div class="total-sub">הטמעה + 12 חודשי רישוי</div></div>
+      <div><div class="total-amount">${calcTotal(setup_fee, monthly_fee)}</div><div class="total-vat">לפני מע"מ</div></div>
+    </div>
   </div>
 </div>
 ${terms.length ? `<div class="section"><div class="sec-label">תנאים משפטיים</div><div class="sec-title" style="font-size:15px;">תנאי ההתקשרות</div>${termRows}</div>` : ""}
 <div class="sig-section">
   <div class="sec-label">חתימות מורשים</div>
-  <div class="sec-title" style="font-size:15px;">${isSigned ? "✓ ההצעה נחתמה על ידי שני הצדדים" : "בלוקי חתימה — להשלמה ידנית"}</div>
+  <div class="sec-title" style="font-size:15px;">${isSigned ? "✓ ההצעה נחתמה — ממתינה לאישור CargoNex" : "בלוקי חתימה"}</div>
   <div class="sig-cols">
     <!-- Client side -->
-    <div class="sig-box">
-      <div class="sig-box-label">הלקוח</div>
+    <div class="sig-box${isSigned ? " sig-box-signed" : ""}">
+      <div class="sig-box-label">${isSigned ? "✓ " : ""}הלקוח</div>
       ${isSigned && signature_b64
-        ? `<img class="${sigImgClass}" src="${signature_b64}" alt="חתימה"/>`
-        : `<div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;"></div>`}
+        ? `<img class="sig-img ${sigImgClass}" src="${signature_b64}" alt="חתימה"/>`
+        : `<div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;max-width:200px;"></div>`}
       ${stampArea(isSigned ? stamp_image_url : stamp_image_url)}
       ${isSigned
         ? `<div class="sig-name">${esc(signer_name)}</div>
@@ -527,10 +539,10 @@ ${terms.length ? `<div class="section"><div class="sec-label">תנאים משפ�
            <span class="sig-id">${esc(signature_id)}</span>`
         : `${blankLine("שם מלא")}${blankLine("תפקיד")}${blankLine("חתימה")}${blankLine("תאריך")}`}
     </div>
-    <!-- CargoNex side — always blank (no signature asset yet) -->
+    <!-- CargoNex side — blank until CS flow -->
     <div class="sig-box">
       <div class="sig-box-label">CargoNex</div>
-      <div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;"></div>
+      <div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;max-width:200px;"></div>
       ${stampArea("")}
       ${blankLine("שם מלא")}
       ${blankLine("תפקיד")}
@@ -540,22 +552,14 @@ ${terms.length ? `<div class="section"><div class="sec-label">תנאים משפ�
   </div>
 </div>
 <div class="next-steps">
-  <div style="font-size:12px;color:#E74C3C;font-weight:700;margin-bottom:5px;">✅ מה קורה עכשיו?</div>
-  <div style="font-size:12px;color:#555;line-height:1.7;">
-    ${esc(sender_name) || "נציג CargoNex"} ייצור קשר תוך 24 שעות לקביעת kickoff.<br/>
-    לכל שאלה: <span style="direction:ltr;display:inline-block;">${esc(owner_email)}</span>
+  <div class="next-steps-icon">✅</div>
+  <div>
+    <div class="next-steps-title">מה קורה עכשיו?</div>
+    <div class="next-steps-body">
+      נציג מטעמינו ייצור עימכם קשר בהקדם.<br/>
+      לכל שאלה: <span style="direction:ltr;display:inline-block;">${esc(owner_email)}</span>
+    </div>
   </div>
 </div>
 <div class="pdf-footer">
-  <span>מסמך זה נחתם אלקטרונית בהתאם לחוק חתימה אלקטרונית, התשס"א-2001</span>
-  <span style="direction:ltr;display:inline-block;">| CargoNex · ${esc(owner_email)} |</span>
-  <span style="direction:ltr;display:inline-block;">מזהה חתימה: ${esc(signature_id) || "preview"}</span>
-</div>
-</body>
-</html>`;
-}
-
-// ===== SERVER =====
-
-const PORT = process.env.PORT || 3001;
-app.listen(PORT, () => console.log(`CargoNex PDF Generator running on port ${PORT}`));
+  <span>מסמך זה נחתם אלקטרונית בהתאם לחוק חתימה 

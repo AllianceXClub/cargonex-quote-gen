@@ -486,6 +486,29 @@
             width: 100%;
             border: none;
         }
+
+        /* ===== CS DASHBOARD ===== */
+        .cs-empty { font-size:14px; color:rgba(255,255,255,0.3); padding:12px 0; }
+        .cs-quote-row { display:flex; justify-content:space-between; align-items:center; padding:16px 0; border-bottom:1px solid rgba(255,255,255,0.06); gap:16px; }
+        .cs-quote-row:last-child { border-bottom:none; }
+        .cs-quote-info { flex:1; min-width:0; }
+        .cs-quote-id { font-size:14px; font-weight:700; color:#E74C3C; margin-bottom:4px; }
+        .cs-quote-client { font-size:13px; color:#fff; margin-bottom:2px; }
+        .cs-quote-meta { font-size:12px; color:rgba(255,255,255,0.4); }
+        .cs-sign-btn { background:#E74C3C; color:#fff; border:none; border-radius:8px; padding:10px 20px; font-size:13px; font-weight:700; font-family:'Heebo',sans-serif; cursor:pointer; white-space:nowrap; flex-shrink:0; }
+        .cs-sign-btn:hover { opacity:0.85; }
+
+        /* ===== CS MODAL ===== */
+        #csModal { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.88); z-index:1000; align-items:center; justify-content:center; padding:20px; }
+        #csModal.open { display:flex; }
+        #csModalContent { background:#111; border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:36px; max-width:640px; width:100%; max-height:90vh; overflow-y:auto; }
+        #csModalTitle { font-size:18px; font-weight:700; color:#E74C3C; margin-bottom:6px; }
+        #csModalSubtitle { font-size:13px; color:rgba(255,255,255,0.4); margin-bottom:28px; }
+        #csCanvas { width:100%; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.15); border-radius:10px; cursor:crosshair; display:block; touch-action:none; }
+        .cs-clear-btn { background:transparent; border:1px solid rgba(255,255,255,0.15); color:rgba(255,255,255,0.5); border-radius:6px; padding:6px 14px; font-size:12px; font-family:'Heebo',sans-serif; cursor:pointer; margin-top:8px; }
+        #csSubmitBtn { width:100%; background:#E74C3C; color:#fff; border:none; border-radius:10px; padding:14px; font-size:16px; font-weight:700; font-family:'Heebo',sans-serif; cursor:pointer; margin-top:20px; box-shadow:0 0 20px rgba(231,76,60,0.4); }
+        #csSubmitBtn:disabled { opacity:0.5; cursor:default; }
+        #csCancelBtn { width:100%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:rgba(255,255,255,0.4); border-radius:10px; padding:12px; font-size:14px; font-family:'Heebo',sans-serif; cursor:pointer; margin-top:8px; }
     </style>
 </head>
 
@@ -493,6 +516,12 @@
 
     <h1>CargoNex</h1>
     <div class="subtitle">מחולל הצעות מחיר — מלא את הפרטים וקבל קובץ HTML מוכן לשליחה</div>
+
+    <!-- CS Dashboard — ממתינות לחתימת CargoNex -->
+    <div class="card" id="csDashboard" style="border-color:rgba(231,76,60,0.25);">
+        <div class="section-title">✅ ממתינות לחתימת CargoNex</div>
+        <div id="csQuotesList"><span class="cs-empty">טוען...</span></div>
+    </div>
 
     <!-- פרטי לקוח -->
     <div class="card">
@@ -1446,6 +1475,129 @@
                 btn.textContent = '✅ אשר ושלח ללקוח';
             }
         }
+
+        // ===== COUNTER-SIGNATURE FLOW =====
+        var _csSigId = null;
+        var _csHasSig = false;
+        var _csCtx = null;
+        var _csDrawing = false;
+
+        function initCsCanvas() {
+            var cv = document.getElementById('csCanvas');
+            if (!cv || cv._csInited) return;
+            cv._csInited = true;
+            _csCtx = cv.getContext('2d');
+            function getPos(e) {
+                var r = cv.getBoundingClientRect();
+                var src = e.touches ? e.touches[0] : e;
+                return { x: (src.clientX - r.left) * (cv.width / r.width), y: (src.clientY - r.top) * (cv.height / r.height) };
+            }
+            cv.addEventListener('mousedown', function (e) { _csDrawing = true; var p = getPos(e); _csCtx.beginPath(); _csCtx.moveTo(p.x, p.y); });
+            cv.addEventListener('mousemove', function (e) { if (!_csDrawing) return; var p = getPos(e); _csCtx.lineTo(p.x, p.y); _csCtx.strokeStyle = '#FFFFFF'; _csCtx.lineWidth = 2.5; _csCtx.lineCap = 'round'; _csCtx.lineJoin = 'round'; _csCtx.stroke(); _csHasSig = true; });
+            cv.addEventListener('mouseup', function () { _csDrawing = false; });
+            cv.addEventListener('mouseleave', function () { _csDrawing = false; });
+            cv.addEventListener('touchstart', function (e) { e.preventDefault(); _csDrawing = true; var p = getPos(e); _csCtx.beginPath(); _csCtx.moveTo(p.x, p.y); }, { passive: false });
+            cv.addEventListener('touchmove', function (e) { e.preventDefault(); if (!_csDrawing) return; var p = getPos(e); _csCtx.lineTo(p.x, p.y); _csCtx.strokeStyle = '#FFFFFF'; _csCtx.lineWidth = 2.5; _csCtx.lineCap = 'round'; _csCtx.lineJoin = 'round'; _csCtx.stroke(); _csHasSig = true; }, { passive: false });
+            cv.addEventListener('touchend', function (e) { e.preventDefault(); _csDrawing = false; }, { passive: false });
+        }
+
+        function clearCsCanvas() {
+            var cv = document.getElementById('csCanvas');
+            if (_csCtx) _csCtx.clearRect(0, 0, cv.width, cv.height);
+            _csHasSig = false;
+        }
+
+        async function loadSignedQuotes() {
+            var dash = document.getElementById('csDashboard');
+            var list = document.getElementById('csQuotesList');
+            try {
+                var res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/list-signed-quotes', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({})
+                });
+                var data = await res.json();
+                var quotes = data.quotes || [];
+                if (quotes.length === 0) {
+                    dash.style.display = 'none';
+                    return;
+                }
+                dash.style.display = 'block';
+                var html = '';
+                for (var i = 0; i < quotes.length; i++) {
+                    var q = quotes[i];
+                    var signedDate = q.signed_at ? new Date(q.signed_at).toLocaleDateString('he-IL', { day: 'numeric', month: 'numeric', year: 'numeric', timeZone: 'Asia/Jerusalem' }) : '';
+                    var safeId = (q.id || '').replace(/'/g, '');
+                    var safeQid = (q.quote_id || '').replace(/'/g, '');
+                    var safeClient = (q.client_name || '').replace(/'/g, '').replace(/\\/g, '');
+                    var safeSigner = (q.signer_name || '').replace(/'/g, '').replace(/\\/g, '');
+                    html += '<div class="cs-quote-row">' +
+                        '<div class="cs-quote-info">' +
+                        '<div class="cs-quote-id">' + (q.quote_id || '') + '</div>' +
+                        '<div class="cs-quote-client">' + (q.client_name || '') + '</div>' +
+                        '<div class="cs-quote-meta">' + (q.signer_name || '') + (q.signer_role ? ' · ' + q.signer_role : '') + ' · ' + signedDate + '</div>' +
+                        '</div>' +
+                        '<button class="cs-sign-btn" onclick="openCsModal(\'' + safeId + '\',\'' + safeQid + '\',\'' + safeClient + '\',\'' + safeSigner + '\')">חתום מטעם CargoNex ←</button>' +
+                        '</div>';
+                }
+                list.innerHTML = html;
+            } catch (e) {
+                dash.style.display = 'none';
+            }
+        }
+
+        function openCsModal(sigId, quoteId, clientName, signerName) {
+            _csSigId = sigId;
+            _csHasSig = false;
+            document.getElementById('csModalTitle').textContent = 'חתימת CargoNex — ' + quoteId;
+            document.getElementById('csModalSubtitle').textContent = clientName + ' · ' + signerName + ' חתם';
+            document.getElementById('csSigError').style.display = 'none';
+            clearCsCanvas();
+            initCsCanvas();
+            document.getElementById('csModal').classList.add('open');
+        }
+
+        function closeCsModal() {
+            document.getElementById('csModal').classList.remove('open');
+            _csSigId = null;
+        }
+
+        async function submitCountersign() {
+            var errEl = document.getElementById('csSigError');
+            errEl.style.display = 'none';
+            if (!_csHasSig) { errEl.style.display = 'block'; return; }
+            var cv = document.getElementById('csCanvas');
+            var csB64 = cv.toDataURL('image/png');
+            var name = document.getElementById('csName').value.trim() || 'דרור';
+            var role = document.getElementById('csRole').value.trim() || 'מנכ"ל CargoNex';
+            var btn = document.getElementById('csSubmitBtn');
+            btn.disabled = true;
+            btn.textContent = '⏳ מאשר ומייצר PDF...';
+            try {
+                var res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/countersign-quote', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ signature_id: _csSigId, countersigner_name: name, countersigner_role: role, countersign_sig_b64: csB64 })
+                });
+                var data = await res.json();
+                if (!res.ok) throw new Error(data.error || 'שגיאת שרת ' + res.status);
+                closeCsModal();
+                var notice = document.createElement('div');
+                notice.style.cssText = 'position:fixed;top:24px;left:50%;transform:translateX(-50%);background:#1a7a45;color:#fff;padding:14px 28px;border-radius:10px;font-size:15px;font-weight:700;font-family:Heebo,sans-serif;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.4);white-space:nowrap;';
+                notice.textContent = '✅ הסכם אושר ונחתם! PDF נשלח לצדדים.';
+                document.body.appendChild(notice);
+                setTimeout(function () { if (notice.parentNode) notice.parentNode.removeChild(notice); }, 5000);
+                await loadSignedQuotes();
+            } catch (e) {
+                alert('שגיאה: ' + e.message);
+                btn.disabled = false;
+                btn.textContent = '✓ חתום ואשר הסכם';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            loadSignedQuotes();
+        });
     </script>
 
     <!-- Preview Modal -->
@@ -1466,6 +1618,30 @@
             </div>
         </div>
         <iframe id="previewFrame" style="flex:1;border:none;width:100%;background:#fff;"></iframe>
+    </div>
+
+    <!-- CS Modal — חתימת CargoNex -->
+    <div id="csModal">
+        <div id="csModalContent">
+            <div id="csModalTitle">חתימת CargoNex</div>
+            <div id="csModalSubtitle"></div>
+            <div class="field">
+                <label>שם</label>
+                <input type="text" id="csName" value="דרור" />
+            </div>
+            <div class="field">
+                <label>תפקיד</label>
+                <input type="text" id="csRole" value='מנכ"ל CargoNex' />
+            </div>
+            <div class="field">
+                <label>חתימה *</label>
+                <canvas id="csCanvas" width="600" height="180"></canvas>
+                <button type="button" class="cs-clear-btn" onclick="clearCsCanvas()">× נקה חתימה</button>
+                <div id="csSigError" style="color:#E74C3C;font-size:12px;margin-top:6px;display:none;">נא לחתום בשטח</div>
+            </div>
+            <button id="csSubmitBtn" onclick="submitCountersign()">✓ חתום ואשר הסכם</button>
+            <button id="csCancelBtn" onclick="closeCsModal()">ביטול</button>
+        </div>
     </div>
 
 </body>

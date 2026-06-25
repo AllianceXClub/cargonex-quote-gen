@@ -357,6 +357,11 @@ function buildPrintHtml({
   stamp_image_url = "", signature_type = "drawn",
   mode = "signed",
   pains = [], benefits = [], terms = [], issueDate = "", expiryDate = "",
+  countersigned = false,
+  countersigner_name = "",
+  countersigner_role = "",
+  countersign_sig_b64 = "",
+  countersigned_at = "",
 }) {
   const esc = s => String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   const isSigned = mode === "signed";
@@ -384,14 +389,14 @@ function buildPrintHtml({
   // Blank signing row helper (for preview and CargoNex side)
   const blankLine = (label) =>
     `<div style="margin:10px 0 2px;">
-      <div style="border-bottom:1px solid #ccc;height:28px;"></div>
-      <div style="font-size:9px;color:#aaa;text-align:center;margin-top:3px;">${label}</div>
+      <div style="border-bottom:2px solid #444;height:28px;"></div>
+      <div style="font-size:9px;font-weight:700;color:#333;text-align:center;margin-top:3px;">${label}</div>
     </div>`;
 
   // Stamp area helper
   const stampArea = (imgUrl) => imgUrl
     ? `<img style="max-width:90px;max-height:55px;display:block;margin:8px auto;border:1px solid #eee;border-radius:4px;" src="${imgUrl}" alt="חותמת"/>`
-    : `<div style="width:90px;height:55px;border:1px dashed #ddd;border-radius:4px;margin:8px auto;display:flex;align-items:center;justify-content:center;font-size:8px;color:#ccc;">חותמת חברה</div>`;
+    : "";
 
   // Signature image — invert only for drawn (white-on-transparent → black-on-white)
   const sigImgClass = signature_type === "drawn" ? "sig-img sig-img-drawn" : "sig-img sig-img-digital";
@@ -404,31 +409,43 @@ function buildPrintHtml({
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(180,30,20,0.055);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
-.pdf-top-bar{height:3px;background:#C0392B;}
-.pdf-header{padding:22px 28px 18px;border-bottom:0.5px solid #e8e8e8;display:flex;justify-content:space-between;align-items:flex-start;position:relative;z-index:1;}
-.pdf-logo-mark{font-size:10px;font-weight:700;color:#C0392B;letter-spacing:0.1em;margin-bottom:7px;}
-.signed-badge{display:inline-flex;align-items:center;gap:4px;background:#F0FBF4;border:0.5px solid #B2E4C7;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;color:#1a7a45;}
-.pdf-meta{text-align:left;}
-.pdf-meta-id{font-size:26px;font-weight:700;color:#111;line-height:1;letter-spacing:-0.02em;}
-.pdf-meta-label{font-size:10px;color:#aaa;margin-top:3px;}
+.watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(180,30,20,0.085);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
+/* ── Header ── */
+.pdf-logo-area{padding:16px 28px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;position:relative;z-index:1;}
+.pdf-logo-img{height:36px;width:auto;}
+.pdf-logo-text{font-size:22px;font-weight:700;}
+.signed-badge{display:inline-flex;align-items:center;gap:4px;background:#F0FBF4;border:0.5px solid #B2E4C7;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;color:#1a7a45;margin-top:6px;}
+.pdf-meta-corner{text-align:left;}
+.pdf-meta-id{font-size:16px;font-weight:600;color:#555;line-height:1;}
+.pdf-meta-label{font-size:10px;color:#aaa;margin-top:2px;}
+.pdf-title-banner{background:#C0392B;padding:14px 28px;position:relative;z-index:1;}
+.pdf-banner-title{font-size:20px;font-weight:700;color:#fff;line-height:1.2;}
+.pdf-banner-sub{font-size:12px;color:rgba(255,255,255,0.8);margin-top:4px;}
+/* ── Client metadata ── */
 .client-block{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:0.5px solid #e8e8e8;position:relative;z-index:1;}
 .meta-item{padding:11px 16px;border-right:0.5px solid #e8e8e8;}
 .meta-item:last-child{border-right:none;}
-.meta-item label{font-size:9px;color:#aaa;display:block;margin-bottom:3px;letter-spacing:0.04em;}
+.meta-item label{font-size:10px;color:#999;display:block;margin-bottom:3px;letter-spacing:0.04em;}
 .meta-item span{font-size:12px;font-weight:600;color:#111;display:block;}
 .meta-item span.expiry{color:#C0392B;}
+/* ── Sections ── */
 .section{padding:18px 28px;border-bottom:0.5px solid #e8e8e8;page-break-inside:avoid;position:relative;z-index:1;}
-.sec-label{font-size:9px;color:#C0392B;letter-spacing:0.08em;margin-bottom:10px;font-weight:700;}
-.sec-title{font-size:17px;font-weight:700;color:#111;margin-bottom:16px;}
+.sec-label{font-size:10px;color:#C0392B;letter-spacing:0.08em;margin-bottom:8px;font-weight:700;text-transform:uppercase;}
+/* ── Font hierarchy H1 > H2 > H3 ── */
+.h1-title{font-size:20px;font-weight:700;color:#111;margin-bottom:18px;padding-bottom:10px;border-bottom:1.5px solid #e0e0e0;}
+.h2-title{font-size:15px;font-weight:700;color:#111;margin-bottom:6px;margin-top:16px;}
+.h3-subtitle{font-size:11px;font-weight:600;color:#888;letter-spacing:0.05em;text-transform:uppercase;margin-bottom:12px;}
+.subsection:first-of-type .h2-title{margin-top:0;}
+/* ── Pain / Benefits ── */
 .pain-row{border-right:3px solid #C0392B;padding-right:12px;margin-bottom:10px;page-break-inside:avoid;}
 .pain-row-secondary{border-right-color:#ddd;}
 .pain-title{font-size:13px;font-weight:700;color:#111;margin-bottom:3px;}
-.pain-desc{font-size:11px;color:#666;line-height:1.6;}
+.pain-desc{font-size:11px;color:#555;line-height:1.6;}
 .ben-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.ben-card{background:#f8f8f8;border-radius:8px;padding:12px 14px;page-break-inside:avoid;}
+.ben-card{background:#f8f8f8;border-radius:8px;padding:12px 14px;page-break-inside:avoid;border-right:3px solid #e0e0e0;}
 .ben-title{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;}
-.ben-desc{font-size:11px;color:#666;line-height:1.5;}
+.ben-desc{font-size:11px;color:#555;line-height:1.5;}
+/* ── Pricing ── */
 .price-table{border:0.5px solid #e8e8e8;border-radius:8px;overflow:hidden;}
 .price-header{display:grid;grid-template-columns:2fr 1fr 1fr;background:#f8f8f8;padding:8px 14px;}
 .price-header span{font-size:10px;font-weight:700;color:#aaa;}
@@ -443,48 +460,54 @@ body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:r
 .price-total{display:flex;justify-content:space-between;align-items:center;padding:13px 14px;background:#f8f8f8;border-top:0.5px solid #e8e8e8;}
 .total-label{font-size:12px;color:#555;font-weight:600;}
 .total-sub{font-size:10px;color:#aaa;}
-.total-amount{font-size:22px;font-weight:700;color:#C0392B;text-align:left;}
+.total-amount{font-size:22px;font-weight:700;color:#111;text-align:left;}
 .total-vat{font-size:10px;color:#aaa;text-align:left;}
+/* ── Terms ── */
 .term-row{padding:10px 14px;border:0.5px solid #e8e8e8;border-radius:8px;margin-bottom:6px;page-break-inside:avoid;}
 .term-title{font-size:12px;font-weight:700;color:#111;margin-bottom:4px;}
 .term-text{font-size:11px;color:#666;line-height:1.6;}
 .vat-note{color:#C0392B;font-weight:700;}
+/* ── Signatures ── */
 .sig-section{padding:18px 28px;position:relative;z-index:1;}
 .sig-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.sig-box{border:0.5px solid #e8e8e8;border-radius:10px;padding:14px;text-align:center;page-break-inside:avoid;}
+.sig-box{border:2px solid #555;border-radius:10px;padding:14px;text-align:center;page-break-inside:avoid;}
 .sig-box-signed{border-color:#B2E4C7;background:#F8FEF9;}
-.sig-box-label{font-size:9px;color:#aaa;font-weight:700;margin-bottom:10px;letter-spacing:0.07em;}
+.sig-box-label{font-size:10px;color:#333;font-weight:700;margin-bottom:10px;letter-spacing:0.07em;}
 .sig-box-signed .sig-box-label{color:#1a7a45;}
 .sig-img{max-width:200px;max-height:80px;display:block;margin:0 auto 8px;border-radius:4px;background:#fff;padding:4px;}
-.sig-img-drawn{filter:none;}
+.sig-img-drawn{filter:invert(1);background:transparent;}
 .sig-img-digital{filter:none;}
 .sig-name{font-size:13px;font-weight:700;color:#111;}
-.sig-role{font-size:11px;color:#777;margin-top:2px;}
-.sig-date{font-size:11px;color:#777;margin-top:2px;}
-.sig-phone{font-size:10px;color:#aaa;margin-top:2px;direction:ltr;display:block;}
+.sig-role{font-size:11px;color:#444;margin-top:2px;}
+.sig-date{font-size:11px;color:#444;margin-top:2px;}
+.sig-phone{font-size:10px;color:#555;margin-top:2px;direction:ltr;display:block;}
 .sig-id{font-size:9px;color:#ccc;margin-top:5px;direction:ltr;display:block;}
-.next-steps{padding:14px 28px;background:#f8f8f8;border-top:0.5px solid #e8e8e8;page-break-inside:avoid;position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;}
+/* ── Next steps ── */
+.next-steps{padding:14px 28px;background:#F0FBF4;border-top:0.5px solid #B2E4C7;page-break-inside:avoid;position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;}
 .next-steps-icon{font-size:15px;color:#1a7a45;flex-shrink:0;margin-top:1px;}
 .next-steps-body{font-size:12px;color:#555;line-height:1.7;}
 .next-steps-title{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;}
+/* ── Footer ── */
 .pdf-footer{padding:8px 28px;border-top:0.5px solid #e8e8e8;font-size:9px;color:#bbb;text-align:center;display:flex;justify-content:center;gap:8px;flex-wrap:wrap;direction:rtl;position:relative;z-index:1;}
 </style>
 </head>
 <body>
-<div class="pdf-top-bar"></div>
-${isSigned ? `<div class="watermark">נחתם</div>` : ""}
-<div class="pdf-header">
+${isSigned ? `<div class="watermark">${countersigned ? "נחתם ואושר" : "נחתם"}</div>` : ""}
+<div class="pdf-logo-area">
   <div>
-    <div class="pdf-logo-mark">CARGONEX</div>
     ${LOGO_BASE64
       ? `<img class="pdf-logo-img" src="${LOGO_BASE64}" alt="CargoNex"/>`
-      : `<div style="font-size:22px;font-weight:700;color:#C0392B;">CargoNex</div>`}
-    ${isSigned ? `<div class="signed-badge">✓ נחתם</div>` : ""}
+      : `<div class="pdf-logo-text">Cargo<span style="color:#C0392B;">Nex</span></div>`}
+    ${isSigned ? `<div class="signed-badge">✓ ${countersigned ? "נחתם ואושר" : "נחתם"}</div>` : ""}
   </div>
-  <div class="pdf-meta">
+  <div class="pdf-meta-corner">
     <div class="pdf-meta-id">${esc(quote_id)}</div>
     <div class="pdf-meta-label">מספר הצעה</div>
   </div>
+</div>
+<div class="pdf-title-banner">
+  <div class="pdf-banner-title">הצעה מסחרית: פלטפורמת CargoNex</div>
+  <div class="pdf-banner-sub">הצעת מחיר עבור ${esc(client_name)} · תאריך: ${esc(issueDate)}</div>
 </div>
 <div class="client-block">
   <div class="meta-item"><label>לקוח</label><span>${esc(client_name)}</span></div>
@@ -492,24 +515,30 @@ ${isSigned ? `<div class="watermark">נחתם</div>` : ""}
   <div class="meta-item"><label>תאריך הנפקה</label><span>${esc(issueDate)}</span></div>
   <div class="meta-item"><label>תוקף עד</label><span class="expiry">${esc(expiryDate)}</span></div>
 </div>
-${pains.length
-  ? `<div class="section"><div class="sec-label">האתגר שלכם</div><div class="sec-title">מה זיהינו אצלכם</div>${painRows}</div>`
-  : `<div class="section"><div class="sec-label">האתגר שלכם</div><div class="sec-title">מה זיהינו אצלכם</div><p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו נקודות כאב.</p></div>`}
-${benefits.length
-  ? `<div class="section"><div class="sec-label">הפתרון שלנו</div><div class="sec-title">מה אנחנו בונים לכם</div><div class="ben-grid">${benCards}</div></div>`
-  : `<div class="section"><div class="sec-label">הפתרון שלנו</div><div class="sec-title">מה אנחנו בונים לכם</div><p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו תועלות.</p></div>`}
 <div class="section">
-  <div class="sec-label">ההצעה הכספית</div>
-  <div class="sec-title">תמחור</div>
+  <div class="h1-title">רקע ותובנות</div>
+  <div class="subsection">
+    <div class="h2-title">האתגר שלכם</div>
+    <div class="h3-subtitle">מה זיהינו אצלכם</div>
+    ${pains.length ? painRows : `<p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו נקודות כאב.</p>`}
+  </div>
+  <div class="subsection" style="margin-top:18px;">
+    <div class="h2-title">הפתרון שלנו</div>
+    <div class="h3-subtitle">מה אנחנו בונים לכם</div>
+    ${benefits.length ? `<div class="ben-grid">${benCards}</div>` : `<p style="color:#aaa;font-size:12px;font-style:italic;">לא הוגדרו תועלות.</p>`}
+  </div>
+</div>
+<div class="section">
+  <div class="h1-title">תמחור</div>
   <div class="price-table">
     <div class="price-header"><span>שירות</span><span style="text-align:center;">סוג</span><span style="text-align:left;">מחיר</span></div>
     <div class="price-row">
-      <div><div class="price-name">הטמעה מקוסטמת</div><div class="price-sub">Custom Setup</div></div>
+      <div><div class="price-name">הטמעה מקוסטמת</div><div class="price-sub">הקמה מותאמת לתהליכים עסקיים</div></div>
       <div style="text-align:center;"><span class="price-badge badge-once">חד פעמי</span></div>
       <div><div class="price-amount">${esc(setup_fee)}</div><div class="price-vat">+ מע"מ</div></div>
     </div>
     <div class="price-row">
-      <div><div class="price-name">תשתית + רישוי SaaS</div><div class="price-sub">Monthly MRR</div></div>
+      <div><div class="price-name">תשתית + רישוי SaaS</div><div class="price-sub">שירות שוטף, SLA כלול</div></div>
       <div style="text-align:center;"><span class="price-badge badge-monthly">חודשי</span></div>
       <div><div class="price-amount">${esc(monthly_fee)}</div><div class="price-vat">לחודש + מע"מ</div></div>
     </div>
@@ -519,17 +548,17 @@ ${benefits.length
     </div>
   </div>
 </div>
-${terms.length ? `<div class="section"><div class="sec-label">תנאים משפטיים</div><div class="sec-title" style="font-size:15px;">תנאי ההתקשרות</div>${termRows}</div>` : ""}
+${terms.length ? `<div class="section"><div class="h1-title">תנאי ההתקשרות</div>${termRows}</div>` : ""}
 <div class="sig-section">
-  <div class="sec-label">חתימות מורשים</div>
-  <div class="sec-title" style="font-size:15px;">${isSigned ? "✓ ההצעה נחתמה — ממתינה לאישור CargoNex" : "בלוקי חתימה"}</div>
+  <div class="h1-title">אישור הצדדים</div>
+  ${isSigned ? `<div class="h1-title" style="margin-bottom:14px;">${countersigned ? "✓ ההסכם אושר — שני הצדדים חתמו" : "✓ ממתין לאישור CargoNex"}</div>` : ""}
   <div class="sig-cols">
     <!-- Client side -->
     <div class="sig-box${isSigned ? " sig-box-signed" : ""}">
       <div class="sig-box-label">${isSigned ? "✓ " : ""}הלקוח</div>
       ${isSigned && signature_b64
         ? `<img class="sig-img ${sigImgClass}" src="${signature_b64}" alt="חתימה"/>`
-        : `<div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;max-width:200px;"></div>`}
+        : ""}
       ${stampArea(isSigned ? stamp_image_url : stamp_image_url)}
       ${isSigned
         ? `<div class="sig-name">${esc(signer_name)}</div>
@@ -539,15 +568,18 @@ ${terms.length ? `<div class="section"><div class="sec-label">תנאים משפ�
            <span class="sig-id">${esc(signature_id)}</span>`
         : `${blankLine("שם מלא")}${blankLine("תפקיד")}${blankLine("חתימה")}${blankLine("תאריך")}`}
     </div>
-    <!-- CargoNex side — blank until CS flow -->
-    <div class="sig-box">
-      <div class="sig-box-label">CargoNex</div>
-      <div style="height:60px;border:1px dashed #ddd;border-radius:4px;margin:0 auto 8px;max-width:200px;"></div>
+    <!-- CargoNex side -->
+    <div class="sig-box${countersigned ? " sig-box-signed" : ""}">
+      <div class="sig-box-label">${countersigned ? "✓ " : ""}CargoNex</div>
+      ${countersigned && countersign_sig_b64
+        ? `<img class="sig-img sig-img-drawn" src="${countersign_sig_b64}" alt="חתימת CargoNex"/>`
+        : ""}
       ${stampArea("")}
-      ${blankLine("שם מלא")}
-      ${blankLine("תפקיד")}
-      ${blankLine("חתימה")}
-      ${blankLine("תאריך")}
+      ${countersigned
+        ? `<div class="sig-name">${esc(countersigner_name)}</div>
+           ${countersigner_role ? `<div class="sig-role">${esc(countersigner_role)}</div>` : ""}
+           <div class="sig-date">${esc(countersigned_at)}</div>`
+        : `${blankLine("שם מלא")}${blankLine("תפקיד")}${blankLine("חתימה")}${blankLine("תאריך")}`}
     </div>
   </div>
 </div>
@@ -556,10 +588,199 @@ ${terms.length ? `<div class="section"><div class="sec-label">תנאים משפ�
   <div>
     <div class="next-steps-title">מה קורה עכשיו?</div>
     <div class="next-steps-body">
-      נציג מטעמינו ייצור עימכם קשר בהקדם.<br/>
+      ${countersigned ? "ההסכם אושר ונחתם על ידי שני הצדדים. העתק מלא נשלח לכל הצדדים." : "נציג מטעמנו יפנה אליכם תוך יום עסקים."}<br/>
       לכל שאלה: <span style="direction:ltr;display:inline-block;">${esc(owner_email)}</span>
     </div>
   </div>
 </div>
 <div class="pdf-footer">
-  <span>מסמך זה נחתם אלקטרונית בהתאם לחוק חתימה 
+  <span>מסמך זה נחתם אלקטרונית בהתאם לחוק חתימה אלקטרונית, התשס"א-2001</span>
+  <span style="direction:ltr;display:inline-block;">| CargoNex · ${esc(owner_email)} |</span>
+  <span style="direction:ltr;display:inline-block;">מזהה חתימה: ${esc(signature_id) || "preview"}</span>
+</div>
+</body>
+</html>`;
+}
+
+// ===== COUNTERSIGN EMAIL =====
+
+function buildCountersignEmailHtml({ signer_name, quote_id, csUrl, countersignedAt, ownerEmail }) {
+  return `<div dir="rtl" style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:32px;background:#fff;color:#111;">
+    <div style="background:#C0392B;height:4px;border-radius:2px;margin-bottom:32px;"></div>
+    <h2 style="font-size:24px;font-weight:700;margin:0 0 8px;">✅ ההסכם אושר — שני הצדדים חתמו</h2>
+    <p style="color:#555;margin:0 0 24px;">מספר הצעה: <strong>${quote_id}</strong></p>
+    <p style="margin:0 0 16px;">שלום <strong>${signer_name}</strong>,</p>
+    <p style="color:#555;margin:0 0 24px;">ההסכם אושר ונחתם על ידי שני הצדדים.<br/>מצורף העתק מלא עם שתי החתימות.</p>
+    <div style="margin:24px 0;">
+      <a href="${csUrl}" style="background:#C0392B;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-weight:700;display:inline-block;">📄 הורד הסכם מלא</a>
+    </div>
+    <p style="color:#aaa;font-size:13px;">תאריך אישור: ${countersignedAt}</p>
+    <hr style="border:none;border-top:1px solid #eee;margin:24px 0;"/>
+    <p style="color:#aaa;font-size:12px;">CargoNex · ${ownerEmail}</p>
+  </div>`;
+}
+
+// ===== /countersign-pdf ROUTE =====
+
+app.post("/countersign-pdf", requireSecret, async (req, res) => {
+  const {
+    signature_id,
+    countersigner_name = "דרור",
+    countersigner_role = 'מנכ"ל CargoNex',
+    countersign_sig_b64,
+  } = req.body;
+
+  if (!signature_id || !countersign_sig_b64) {
+    return res.status(400).json({ error: "Missing required fields" });
+  }
+
+  console.log(`[CS-PDF] Starting for signature ${signature_id}`);
+  let browser;
+  try {
+    // 1. Fetch original signature record
+    const { data: sigRow, error: sigErr } = await supabase
+      .from("quote_signatures")
+      .select("*")
+      .eq("id", signature_id)
+      .single();
+
+    if (sigErr || !sigRow) {
+      return res.status(404).json({ error: "Signature not found" });
+    }
+    if (sigRow.countersigned_at) {
+      return res.status(409).json({ error: "Already countersigned" });
+    }
+
+    const {
+      quote_id, signer_name, signer_email, client_name,
+      signature_image, stamp_image_url, setup_fee, monthly_fee,
+      signer_role, signer_phone, signed_at, signature_type,
+      owner_email: storedOwnerEmail,
+    } = sigRow;
+
+    // 2. Fetch quote HTML for content extraction
+    const { data: quoteRow } = await supabase
+      .from("quotes")
+      .select("html_content")
+      .eq("quote_id", quote_id)
+      .single();
+
+    const countersignedAt = new Date().toISOString();
+    const fmt = (iso) => {
+      const d = new Date(iso);
+      const date = d.toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric", year: "numeric" });
+      const time = d.toLocaleTimeString("he-IL", { timeZone: "Asia/Jerusalem", hour: "2-digit", minute: "2-digit" });
+      return `${date} בשעה ${time}`;
+    };
+
+    browser = await chromium.launch({
+      args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage", "--disable-gpu", "--disable-extensions", "--run-all-compositor-stages-before-draw"],
+    });
+
+    // 3. Extract pains/benefits/terms from stored quote HTML
+    let extracted = { pains: [], benefits: [], terms: [], issueDate: "", expiryDate: "" };
+    if (quoteRow?.html_content) {
+      const extractPage = await browser.newPage();
+      try {
+        await extractPage.route("**/*", (route) => {
+          const url = route.request().url();
+          if (url.includes("supabase.co/functions") || url.includes("track-event") || url.includes("analytics")) {
+            route.abort();
+          } else {
+            route.continue();
+          }
+        });
+        await extractPage.setContent(quoteRow.html_content, { waitUntil: "domcontentloaded", timeout: 15000 });
+        extracted = await extractQuoteData(extractPage);
+      } catch (e) {
+        console.warn("[CS-PDF] extractQuoteData failed:", e.message);
+      } finally {
+        await extractPage.close();
+      }
+    }
+
+    // 4. Build PDF with both signatures
+    const printHtml = buildPrintHtml({
+      quote_id, signer_name, signer_email, client_name,
+      setup_fee, monthly_fee,
+      signed_at: fmt(signed_at),
+      signature_id,
+      signature_b64: signature_image,
+      signer_role: signer_role || "",
+      signer_phone: signer_phone || "",
+      stamp_image_url: stamp_image_url || "",
+      signature_type: signature_type || "drawn",
+      owner_email: storedOwnerEmail || OWNER_EMAIL,
+      mode: "signed",
+      countersigned: true,
+      countersigner_name,
+      countersigner_role,
+      countersign_sig_b64,
+      countersigned_at: fmt(countersignedAt),
+      ...extracted,
+    });
+
+    // 5. Render PDF
+    const printPage = await browser.newPage();
+    await printPage.setContent(printHtml, { waitUntil: "domcontentloaded", timeout: 20000 });
+    await Promise.race([
+      printPage.waitForFunction(() => document.fonts.ready, { timeout: 4000 }),
+      new Promise(r => setTimeout(r, 2000)),
+    ]);
+    const pdfBuffer = await printPage.pdf({
+      format: "A4",
+      printBackground: true,
+      margin: { top: "15mm", bottom: "15mm", left: "15mm", right: "15mm" },
+    });
+    await printPage.close();
+    await browser.close();
+    browser = null;
+
+    // 6. Upload to Supabase Storage
+    const csFilename = `${quote_id}-${signature_id}-cs.pdf`;
+    const { error: uploadError } = await supabase.storage
+      .from(STORAGE_BUCKET)
+      .upload(csFilename, pdfBuffer, { contentType: "application/pdf", upsert: true });
+    if (uploadError) throw new Error(`Storage upload failed: ${uploadError.message}`);
+
+    const { data: { publicUrl: csUrl } } = supabase.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(csFilename);
+
+    // 7. Update quote_signatures
+    await supabase.from("quote_signatures").update({
+      countersigned_at: countersignedAt,
+      countersigner_name,
+      countersigner_role,
+      countersign_sig_b64,
+      countersign_pdf_url: csUrl,
+    }).eq("id", signature_id);
+
+    // 8. Send email to both parties
+    const effectiveOwnerEmail = storedOwnerEmail || OWNER_EMAIL;
+    const csEmailHtml = buildCountersignEmailHtml({
+      signer_name, quote_id, csUrl,
+      countersignedAt: fmt(countersignedAt),
+      ownerEmail: effectiveOwnerEmail,
+    });
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: [...new Set([signer_email, effectiveOwnerEmail].filter(Boolean))],
+      subject: `✅ הסכם מלא — שני הצדדים חתמו | ${quote_id}`,
+      html: csEmailHtml,
+    });
+
+    console.log(`[CS-PDF] Done for ${quote_id}. CS URL: ${csUrl}`);
+    res.json({ ok: true, countersign_pdf_url: csUrl });
+
+  } catch (err) {
+    console.error(`[CS-PDF] Error:`, err.message);
+    if (browser) await browser.close().catch(() => {});
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ===== SERVER =====
+
+const PORT = process.env.PORT || 3001;
+app.listen(PORT, () => console.log(`CargoNex PDF Generator running on port ${PORT}`));

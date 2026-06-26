@@ -676,6 +676,12 @@
                         style="direction:ltr;text-align:right;" />
                 </div>
             </div>
+            <div class="grid2" style="margin-top:10px;">
+                <div class="field">
+                    <label>תפקיד החותם</label>
+                    <input type="text" id="signerRole" placeholder='מנכ"ל, סמנכ"ל כספים...' />
+                </div>
+            </div>
         </div>
         <div style="font-size:13px;color:rgba(255,255,255,0.5);margin-bottom:10px;">צופים נוספים (קריאה בלבד)</div>
         <div id="viewersContainer"></div>
@@ -1363,7 +1369,8 @@
         var _previewStampB64 = "";
 
         function openPreview(html, filename, quoteId, signerName, signerEmail, viewers, baseUrl, ownerEmail) {
-            _pendingDownload = { html: html, filename: filename, quoteId: quoteId, signerName: signerName, signerEmail: signerEmail, viewers: viewers, baseUrl: baseUrl, ownerEmail: ownerEmail || '' };
+            var signerRoleVal = document.getElementById('signerRole') ? document.getElementById('signerRole').value.trim() : '';
+            _pendingDownload = { html: html, filename: filename, quoteId: quoteId, signerName: signerName, signerEmail: signerEmail, signerRole: signerRoleVal, viewers: viewers, baseUrl: baseUrl, ownerEmail: ownerEmail || '' };
             var modal = document.getElementById('previewModal');
             var frame = document.getElementById('previewFrame');
             var label = document.getElementById('previewQuoteLabel');
@@ -1410,7 +1417,7 @@
                 var res = await fetch('https://tjitewgiszukqyjujxrh.supabase.co/functions/v1/pdf-proxy', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ html: _pendingDownload.html, quote_id: _pendingDownload.quoteId, stamp_b64: _previewStampB64 || "" })
+                    body: JSON.stringify({ html: _pendingDownload.html, quote_id: _pendingDownload.quoteId, stamp_b64: _previewStampB64 || "", signer_name: _pendingDownload.signerName || "", signer_role: _pendingDownload.signerRole || "" })
                 });
                 if (!res.ok) throw new Error('HTTP ' + res.status);
                 var blob = await res.blob();

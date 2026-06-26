@@ -182,7 +182,7 @@ app.post("/generate-pdf", requireSecret, async (req, res) => {
 });
 
 app.post("/preview-pdf", requireSecret, async (req, res) => {
-  const { html, stamp_b64 = "" } = req.body;
+  const { html, stamp_b64 = "", signer_name = "", signer_role = "" } = req.body;
   let browser;
   try {
     browser = await chromium.launch({
@@ -243,7 +243,7 @@ app.post("/preview-pdf", requireSecret, async (req, res) => {
 
     const printHtml = buildPrintHtml({
       quote_id: data.quoteId || "preview",
-      signer_name: "",
+      signer_name: signer_name,
       signer_email: "",
       client_name: data.clientName || "",
       setup_fee: data.setupFee || "",
@@ -251,7 +251,7 @@ app.post("/preview-pdf", requireSecret, async (req, res) => {
       signed_at: "",
       signature_id: "",
       signature_b64: "",
-      signer_role: "",
+      signer_role: signer_role,
       signer_phone: "",
       sender_name: "",
       stamp_image_url: stamp_b64,
@@ -412,7 +412,7 @@ body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:r
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(180,30,20,0.085);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
 /* ── Header ── */
 .pdf-logo-area{padding:16px 28px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;position:relative;z-index:1;}
-.pdf-logo-img{height:36px;width:auto;}
+.pdf-logo-img{height:56px;width:auto;}
 .pdf-logo-text{font-size:22px;font-weight:700;}
 .signed-badge{display:inline-flex;align-items:center;gap:4px;background:#F0FBF4;border:0.5px solid #B2E4C7;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;color:#1a7a45;margin-top:6px;}
 .pdf-meta-corner{text-align:left;}
@@ -566,7 +566,9 @@ ${terms.length ? `<div class="section"><div class="h1-title">תנאי ההתקש
            <div class="sig-date">${esc(signed_at)}</div>
            ${signer_phone ? `<span class="sig-phone">${esc(signer_phone)}</span>` : ""}
            <span class="sig-id">${esc(signature_id)}</span>`
-        : `${blankLine("שם מלא")}${blankLine("תפקיד")}${blankLine("חתימה")}${blankLine("תאריך")}`}
+        : `${signer_name ? `<div class="sig-name">${esc(signer_name)}</div>` : blankLine("שם מלא")}
+           ${signer_role ? `<div class="sig-role">${esc(signer_role)}</div>` : blankLine("תפקיד")}
+           ${blankLine("חתימה")}${blankLine("תאריך")}`}
     </div>
     <!-- CargoNex side -->
     <div class="sig-box${countersigned ? " sig-box-signed" : ""}">

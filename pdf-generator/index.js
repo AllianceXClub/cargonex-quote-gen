@@ -224,7 +224,7 @@ app.post("/preview-pdf", requireSecret, async (req, res) => {
         const title = summEl ? txt(summEl).replace("＋", "").replace("−", "").trim() : "";
         const termContent = el.querySelector(".term-content");
         if (termContent) termContent.querySelectorAll(".comment-btn,.comment-box,.comment-trigger-wrap,button").forEach(e => e.remove());
-        const content = txt(termContent);
+        const content = termContent ? termContent.innerHTML.trim() : "";
         if (title) terms.push({ title, content });
       });
       const dateEls = document.querySelectorAll(".hero-date-value");
@@ -332,7 +332,7 @@ async function extractQuoteData(page) {
       if (termContent) {
         termContent.querySelectorAll(".comment-btn, .comment-box, .comment-trigger-wrap, .comment-submit-btn, .comment-sent-msg, button").forEach(e => e.remove());
       }
-      const content = txt(termContent);
+      const content = termContent ? termContent.innerHTML.trim() : "";
       if (title) terms.push({ title, content });
     });
 
@@ -381,7 +381,7 @@ function buildPrintHtml({
   const termRows = terms.map((t, i) =>
     `<div class="term-row${i === 0 ? " highlight" : ""}">` +
     `<div class="term-title">${esc(t.title)}</div>` +
-    `<div class="term-text">${esc(t.content)}` +
+    `<div class="term-text">${t.content}` +
     `${i === 0 ? ' <span class="vat-note">כל הסכומים לפני מע"מ.</span>' : ""}` +
     `</div></div>`
   ).join("");
@@ -412,7 +412,7 @@ body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:r
 .watermark{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:96px;font-weight:900;color:rgba(180,30,20,0.085);pointer-events:none;z-index:0;white-space:nowrap;letter-spacing:0.1em;}
 /* ── Header ── */
 .pdf-logo-area{padding:16px 28px 14px;display:flex;align-items:center;justify-content:space-between;background:#fff;position:relative;z-index:1;}
-.pdf-logo-img{height:56px;width:auto;}
+.pdf-logo-img{height:72px;width:auto;}
 .pdf-logo-text{font-size:22px;font-weight:700;}
 .signed-badge{display:inline-flex;align-items:center;gap:4px;background:#F0FBF4;border:0.5px solid #B2E4C7;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;color:#1a7a45;margin-top:6px;}
 .pdf-meta-corner{text-align:left;}
@@ -483,8 +483,8 @@ body{font-family:'Heebo',Arial,sans-serif;background:#fff;color:#111;direction:r
 .sig-phone{font-size:10px;color:#555;margin-top:2px;direction:ltr;display:block;}
 .sig-id{font-size:9px;color:#ccc;margin-top:5px;direction:ltr;display:block;}
 /* ── Next steps ── */
-.next-steps{padding:14px 28px;background:#F0FBF4;border-top:0.5px solid #B2E4C7;page-break-inside:avoid;position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;}
-.next-steps-icon{font-size:15px;color:#1a7a45;flex-shrink:0;margin-top:1px;}
+.next-steps{padding:14px 28px;background:${countersigned ? '#F0FBF4' : '#EBF4FD'};border-top:0.5px solid ${countersigned ? '#B2E4C7' : '#B3D4F0'};page-break-inside:avoid;position:relative;z-index:1;display:flex;align-items:flex-start;gap:10px;}
+.next-steps-icon{font-size:15px;color:${countersigned ? '#1a7a45' : '#2471A3'};flex-shrink:0;margin-top:1px;}
 .next-steps-body{font-size:12px;color:#555;line-height:1.7;}
 .next-steps-title{font-size:12px;font-weight:700;color:#111;margin-bottom:3px;}
 /* ── Footer ── */
@@ -510,8 +510,8 @@ ${isSigned ? `<div class="watermark">${countersigned ? "נחתם ואושר" : "
   <div class="pdf-banner-sub">הצעת מחיר עבור ${esc(client_name)} · תאריך: ${esc(issueDate)}</div>
 </div>
 <div class="client-block">
-  <div class="meta-item"><label>לקוח</label><span>${esc(client_name)}</span></div>
-  <div class="meta-item"><label>חותם · תפקיד</label><span>${esc(signer_name) || "—"}${signer_role ? ` · ${esc(signer_role)}` : ""}</span></div>
+  <div class="meta-item"><label>חברה</label><span>${esc(client_name)}</span></div>
+  <div class="meta-item"><label>לכבוד</label><span>${esc(signer_name) || "—"}${signer_role ? ` · ${esc(signer_role)}` : ""}</span></div>
   <div class="meta-item"><label>תאריך הנפקה</label><span>${esc(issueDate)}</span></div>
   <div class="meta-item"><label>תוקף עד</label><span class="expiry">${esc(expiryDate)}</span></div>
 </div>
@@ -586,7 +586,7 @@ ${terms.length ? `<div class="section"><div class="h1-title">תנאי ההתקש
   </div>
 </div>
 <div class="next-steps">
-  <div class="next-steps-icon">✅</div>
+  <div class="next-steps-icon">${countersigned ? '✅' : '⏳'}</div>
   <div>
     <div class="next-steps-title">מה קורה עכשיו?</div>
     <div class="next-steps-body">
